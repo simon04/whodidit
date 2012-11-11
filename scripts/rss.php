@@ -7,7 +7,8 @@ if( !$bbox ) {
 }
 header('Content-type: application/rss+xml; charset=utf-8');
 $db = connect();
-$sql = "select c.* from wdi_tiles t, wdi_changesets c where t.changeset_id = c.changeset_id and t.lon >= $bbox[0] and t.lon <= $bbox[2] and t.lat >= $bbox[1] and t.lat <= $bbox[3] group by c.changeset_id order by c.change_time desc limit 20";
+$bbox_query = " AND Contains(GeomFromText('POLYGON(($bbox[1] $bbox[0], $bbox[3] $bbox[0], $bbox[3] $bbox[2], $bbox[1] $bbox[2], $bbox[1] $bbox[0]))'), latlon)";
+$sql = "select c.* from wdi_tiles t, wdi_changesets c where t.changeset_id = c.changeset_id $bbox_query group by c.changeset_id order by c.change_time desc limit 20";
 $res = $db->query($sql);
 $bbox_str = $bbox[0]*$tile_size.','.$bbox[1]*$tile_size.','.($bbox[2]+1)*$tile_size.','.($bbox[3]+1)*$tile_size;
 //\t<link>http://openstreetmap.org/?box=yes&amp;bbox=$bbox_str</link>

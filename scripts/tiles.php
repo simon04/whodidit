@@ -27,9 +27,16 @@ $aggregate = false;
 $db = connect();
 $changeset = isset($_REQUEST['changeset']) && preg_match('/^\d+$/', $_REQUEST['changeset']) ? ' and t.changeset_id = '.$_REQUEST['changeset'] : '';
 if( strlen($changeset) > 0 ) $aggregate = true;
-$age = isset($_REQUEST['age']) && preg_match('/^\d+$/', $_REQUEST['age']) ? $_REQUEST['age'] : 7;
-$age_sql = $changeset ? '' : " and date_add(c.change_time, interval $age day) > utc_timestamp()";
-$bbox_query = $extent ? '' : " and t.lon >= $bbox[0] and t.lon <= $bbox[2] and t.lat >= $bbox[1] and t.lat <= $bbox[3]";
+//$age = isset($_REQUEST['age']) && preg_match('/^\d+$/', $_REQUEST['age']) ? $_REQUEST['age'] : 7;
+if (isset($_REQUEST['age']) && is_numeric($_REQUEST['age']))
+    $age = ($_REQUEST['age'] . ' day');
+else if (isset($_REQUEST['age']) && preg_match('/^\d+\s+(minute|hour|day|week|month|quarter|year)\s*/i', $_REQUEST['age']))
+    $age = $_REQUEST['age'];
+else
+    $age = '7 day';
+$age_sql = $changeset ? '' : " AND t.change_time > Date_sub(UTC_TIMESTAMP(), INTERVAL $age)";
+//$bbox_query = $extent ? '' : " and t.lon >= $bbox[0] and t.lon <= $bbox[2] and t.lat >= $bbox[1] and t.lat <= $bbox[3]";
+$bbox_query = $extent ? '' : " AND Contains(GeomFromText('POLYGON(($bbox[1] $bbox[0], $bbox[3] $bbox[0], $bbox[3] $bbox[2], $bbox[1] $bbox[2], $bbox[1] $bbox[0]))'), latlon)";
 $editor = isset($_REQUEST['editor']) && strlen($_REQUEST['editor']) > 0 ? ' and c.created_by like \'%'.$db->escape_string($_REQUEST['editor']).'%\'' : '';
 if( isset($_REQUEST['user']) && strlen($_REQUEST['user']) > 0 ) {
     $username = $_REQUEST['user'];
@@ -93,13 +100,19 @@ if( $tile_count <= $small_tile_limit ) {
     $sql = 'select floor(t.lat/10) as rlat, floor(t.lon/10) as rlon';
     $tile_size *= 10;
 }
-$sql .= ', left(group_concat(t.changeset_id order by t.changeset_id desc separator \',\'),300) as changesets, sum(t.nodes_created) as nc, sum(t.nodes_modified) as nm, sum(t.nodes_deleted) as nd from wdi_tiles t, wdi_changesets c where c.changeset_id = t.changeset_id'.
-    $bbox_query.
-    $age_sql.
-    $user.
-    $editor.
-    $changeset.
-    ' group by rlat,rlon limit '.($db_tile_limit+1);
+$sql .= ', Substring_index(Group_concat(t.changeset_id ORDER BY t.changeset_id DESC SEPARATOR \',\'), \',\', 10) as changesets';
+$sql .= ', sum(t.nodes_created) as nc';
+$sql .= ', sum(t.nodes_modified) as nm';
+$sql .= ', sum(t.nodes_deleted) as nd';
+$sql .= ' from wdi_tiles t';
+$sql .= ', wdi_changesets c';
+$sql .= ' where c.changeset_id = t.changeset_id';
+$sql .= $bbox_query;
+$sql .= $age_sql;
+$sql .= $user;
+$sql .= $editor;
+$sql .= $changeset;
+$sql .= ' group by latlon limit '.($db_tile_limit+1);
 
 $res = $db->query($sql);
 if( $res->num_rows > $db_tile_limit ) {

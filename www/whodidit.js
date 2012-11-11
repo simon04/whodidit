@@ -393,10 +393,12 @@ function restoreLocation() {
 function populateAgeBox() {
     var sel = document.getElementById('tage');
     sel.options.length = 0;
+    sel.options[sel.options.length] = new Option('6 hours', '6 hour');
     sel.options[sel.options.length] = new Option('day', 1);
+    sel.options[sel.options.length] = new Option('3 days', 3);
     sel.options[sel.options.length] = new Option('week', 7);
-    sel.options[sel.options.length] = new Option('month', 31);
-    sel.options[sel.options.length] = new Option('half a year', 187);
+    sel.options[sel.options.length] = new Option('month', '1 month');
+    sel.options[sel.options.length] = new Option('half a year', '6 month');
     sel.options[sel.options.length] = new Option('eternity', 1000);
 }
 
