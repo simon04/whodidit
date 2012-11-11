@@ -170,7 +170,8 @@ sub process_osc {
                             changeset => $changeset,
                             nodes_created => 0,
                             nodes_modified => 0,
-                            nodes_deleted => 0
+                            nodes_deleted => 0,
+                            time => $change->{time}
                         };
                         $tiles{$key} = $tile;
                         $tilesc++;
@@ -216,8 +217,8 @@ on duplicate key update
 CHSQL
     my $sql_t = <<CHSQL;
 insert into ${dbprefix}tiles
-    (lat, lon, changeset_id, nodes_created, nodes_modified, nodes_deleted)
-    values (??)
+    (lat, lon, latlon, changeset_id, change_time, nodes_created, nodes_modified, nodes_deleted)
+    values (?, ?, Point(?,?), ?, ?, ?, ?, ?)
 on duplicate key update
     nodes_created = nodes_created + values(nodes_created),
     nodes_modified = nodes_modified + values(nodes_modified),
@@ -236,7 +237,9 @@ CHSQL
 
         print STDERR " and tiles" if $verbose;
         for my $t (values %{$tiles}) {
-            $db->query($sql_t, $t->{lat}, $t->{lon}, $t->{changeset},
+            $db->query($sql_t,
+                $t->{lat}, $t->{lon}, $t->{lat}, $t->{lon},
+                $t->{changeset}, $t->{time},
                 $t->{nodes_created}, $t->{nodes_modified}, $t->{nodes_deleted});
         }
         $db->commit;
@@ -283,43 +286,42 @@ sub create_table {
     $db->query("drop table if exists ${dbprefix}changesets") or die $db->error;
 
     my $sql = <<CREAT1;
-create table ${dbprefix}tiles (
-        who_id int unsigned not null auto_increment primary key,
-	lat smallint not null,
-	lon smallint not null,
-	changeset_id int unsigned not null,
-
-	nodes_created smallint unsigned not null,
-	nodes_modified smallint unsigned not null,
-	nodes_deleted smallint unsigned not null,
-
-	unique idx_tile (lat, lon, changeset_id),
-	index idx_change (changeset_id)
-)
+CREATE TABLE ${dbprefix}tiles (
+    lat smallint(6) NOT NULL,
+    lon smallint(6) NOT NULL,
+    latlon point NOT NULL,
+    changeset_id int(10) unsigned NOT NULL,
+    change_time datetime NOT NULL,
+    nodes_created smallint(5) unsigned NOT NULL,
+    nodes_modified smallint(5) unsigned NOT NULL,
+    nodes_deleted smallint(5) unsigned NOT NULL,
+    PRIMARY KEY (changeset_id,lat,lon),
+    SPATIAL KEY idx_latlon (latlon),
+    KEY idx_time (change_time)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8
 CREAT1
     $db->query($sql) or die $db->error;
     $sql = <<CREAT2;
-create table ${dbprefix}changesets (
-        changeset_id int unsigned not null primary key,
-	change_time datetime not null,
-	comment varchar(254),
-	user_id mediumint unsigned not null,
-	user_name varchar(96) not null,
-	created_by varchar(64),
-
-	nodes_created smallint unsigned not null,
-	nodes_modified smallint unsigned not null,
-	nodes_deleted smallint unsigned not null,
-	ways_created smallint unsigned not null,
-	ways_modified smallint unsigned not null,
-	ways_deleted smallint unsigned not null,
-	relations_created smallint unsigned not null,
-	relations_modified smallint unsigned not null,
-	relations_deleted smallint unsigned not null,
-
-	index idx_user (user_name),
-	index idx_time (change_time)
-)
+CREATE TABLE ${dbprefix}changesets (
+    changeset_id int(10) unsigned NOT NULL,
+    change_time datetime NOT NULL,
+    comment varchar(254) DEFAULT NULL,
+    user_id mediumint(8) unsigned NOT NULL,
+    user_name varchar(96) NOT NULL,
+    created_by varchar(64) DEFAULT NULL,
+    nodes_created smallint(5) unsigned NOT NULL,
+    nodes_modified smallint(5) unsigned NOT NULL,
+    nodes_deleted smallint(5) unsigned NOT NULL,
+    ways_created smallint(5) unsigned NOT NULL,
+    ways_modified smallint(5) unsigned NOT NULL,
+    ways_deleted smallint(5) unsigned NOT NULL,
+    relations_created smallint(5) unsigned NOT NULL,
+    relations_modified smallint(5) unsigned NOT NULL,
+    relations_deleted smallint(5) unsigned NOT NULL,
+    PRIMARY KEY (changeset_id),
+    KEY idx_user (user_name),
+    KEY idx_time (change_time)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8
 CREAT2
     $db->query($sql) or die $db->error;
     print STDERR "Database tables were recreated.\n" if $verbose;
