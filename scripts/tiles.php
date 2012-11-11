@@ -27,8 +27,14 @@ $aggregate = false;
 $db = connect();
 $changeset = isset($_REQUEST['changeset']) && preg_match('/^\d+$/', $_REQUEST['changeset']) ? ' and t.changeset_id = '.$_REQUEST['changeset'] : '';
 if( strlen($changeset) > 0 ) $aggregate = true;
-$age = isset($_REQUEST['age']) && preg_match('/^\d+$/', $_REQUEST['age']) ? $_REQUEST['age'] : 7;
-$age_sql = $changeset ? '' : " and date_add(c.change_time, interval $age day) > utc_timestamp()";
+//$age = isset($_REQUEST['age']) && preg_match('/^\d+$/', $_REQUEST['age']) ? $_REQUEST['age'] : 7;
+if (isset($_REQUEST['age']) && is_numeric($_REQUEST['age']))
+    $age = ($_REQUEST['age'] . ' day');
+else if (isset($_REQUEST['age']) && preg_match('/^\d+\s+(minute|hour|day|week|month|quarter|year)\s*/i', $_REQUEST['age']))
+    $age = $_REQUEST['age'];
+else
+    $age = '7 day';
+$age_sql = $changeset ? '' : " AND t.change_time > Date_sub(UTC_TIMESTAMP(), INTERVAL $age)";
 $bbox_query = $extent ? '' : " and t.lon >= $bbox[0] and t.lon <= $bbox[2] and t.lat >= $bbox[1] and t.lat <= $bbox[3]";
 $editor = isset($_REQUEST['editor']) && strlen($_REQUEST['editor']) > 0 ? ' and c.created_by like \'%'.$db->escape_string($_REQUEST['editor']).'%\'' : '';
 if( isset($_REQUEST['user']) && strlen($_REQUEST['user']) > 0 ) {
