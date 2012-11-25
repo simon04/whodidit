@@ -3,48 +3,38 @@
 <head>
     <title>WHODIDIT: OpenStreetMap Changeset Analyzer</title>
     <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
-    <script src="OpenLayers.js"></script> 
+    <script src="OpenLayers.js"></script>
     <script>var scripts = 'http://localhost/wdi/scripts/';</script>
-    <script src="whodidit.js"></script> 
+    <script src="whodidit.js"></script>
 
     <link rel="stylesheet" href="style.css" type="text/css"/>
     <style type="text/css">
-        html, body, mapdiv {
-            font-family: Verdana, Helvetica, Arial, sans-serif;
+        html, body, #page, table {
+            font: 12px/12px Droid Sans, Verdana, Helvetica, Arial, sans-serif;
             color: black;
+            margin: 0;
         }
 
-        #page {
-            height: 100%;
-            width: 100%;
-            border-collapse: collapse;
-            padding: 0;
-        }
-        #filterbox {
-            padding-bottom: 0.5em;
-            height: 1em;
-        }
-        #map {
-            height: 100%;
-        }
-
-        div.olControlAttribution { bottom:40px; } 
-
-        #whodidit {
-            font-family: "Arial Black","Arial",sans-serif;
-            font-weight: 2000;
-            color: black;
-            padding-right: 2em;
-        }
-        .help {
+        #logo, #topbox {
             position: absolute;
-            right: 8px;
+            background: rgba(255,255,255,0.8);
         }
-        .filtermargin {
-            margin-right: 2em;
+        #logo {
+            z-index: 999;
+            border-bottom: 1px solid rgba(255,255,255,0.9);
         }
-     
-        .markerContent { font-size: 80%; }
+        #topbox {
+            margin-left: 120px;
+            z-index: 998;
+            padding: 5px;
+            height: 110px;
+            border-bottom: 1px solid rgba(255,255,255,0.9);
+            border-right: 1px solid rgba(255,255,255,0.9);
+        }
+
+        div.olControlAttribution { bottom:30px; }
+        div.olcontrolzoom { margin-top: 120px; }
+
         .changeset { margin-bottom: 4px; }
         .graph { border: 1px black solid; list-style: none; }
         .graph span { padding: 0 4px; }
@@ -53,48 +43,91 @@
         .deleted { background-color: #f77; }
         .comment {
             padding-left: 2em;
-            font-size: 80%;
+            font-size: 90%;
             color: gray;
         }
         .openjosm {
-            padding-top: 0.5em;
-            font-size: 80%;
-            text-align: right;
+            font-size: 90%;
+            float: right;
         }
         #message {
             position: absolute;
-            left: 64px;
-            top: 4em;
+            margin-left: 55px;
+            margin-top: 140px;
             background-color: rgba(255,0,0,0.4);
             color: white;
             font-weight: bold;
             padding: 1em 2em;
             z-index: 999;
         }
-
-        /* get rid of scroll bars on google chrome (ugly hack) */
-        @media screen and (-webkit-min-device-pixel-ratio:0) {
-            #pop_contentDiv { overflow: hidden; }
+        #changesets {
+            margin-top: 1em;
+        }
+        #changesets td  {
+            max-width: 40em;
         }
     </style>
+    <script type="text/html" id="changeset_tmpl">
+        <tr>
+            <td style="white-space:nowrap">
+                <span style="color: <%=color%>;" title="<%=change_time%>"><%=date_str%></span>:
+                <a href="http://openstreetmap.org/browse/changeset/<%=changeset_id%>" title="changeset" target="_blank"><%=changeset_id%></a>
+                <a href="#" title="filter by this changeset" onclick="setChangeset(<%=changeset_id%>); return false;" class="filter">[F]</a>
+                by
+                <a href="http://openstreetmap.org/user/<%=user_name%>" title="user" target="_blank"><%=user_name%></a>
+                <a href="#" title="filter by this user" onclick="setUser('<%=user_name%>'); return false;" class="filter">[F]</a>.
+            </td>
+            <td style="white-space:nowrap">
+                <span class="stat">N:&thinsp;<span class="graph"><span class="created"><%=nodes_created%></span><span class="modified"><%=nodes_modified%></span><span class="deleted"><%=nodes_deleted%></span></span></span>
+            </td>
+            <td style="white-space:nowrap">
+                <span class="stat">W:&thinsp;<span class="graph"><span class="created"><%=ways_created%></span><span class="modified"><%=ways_modified%></span><span class="deleted"><%=ways_deleted%></span></span></span>
+            </td>
+            <td style="white-space:nowrap">
+                <span class="stat">R:&thinsp;<span class="graph"><span class="created"><%=relations_created%></span><span class="modified"><%=relations_modified%></span><span class="deleted"><%=relations_deleted%></span></span></span>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="4">
+                <div class="comment"><%=nicecomment%></div>
+            </td>
+        </tr>
+    </script>
 </head>
 
 <body onload="init()">
-    <table id="page"><tr><td id="filterbox">
-        <span id="whodidit">WHO DID IT?</span>
-        <span class="filters">
-            <span id="vchangeset">Changeset: <input type="text" size="10" id="tchangeset" value=""> <input type="button" value="Apply" id="bchangeset" class="filtermargin" onclick="apply('changeset');"></span>
-            <span id="vuser">User: <input type="text" size="25" id="tuser" value=""> <input type="button" value="Apply" id="buser" class="filtermargin" onclick="apply('user');"></span>
-            <span id="vage">Age: <select id="tage" onchange="setAge(this.value);" class="filtermargin"><option value="7">week</option></select></span>
-            <a id="vwhere" href="#" onclick="zoomToTiles(); return false;" style="visibility: hidden;" class="filtermargin">Where?</a>
-        </span>
-        <span class="rss">
-            <input type="button" value="Get RSS link" onclick="startDrawBBOX();" id="brss"> <a href="#" id="rssurl" style="visibility: hidden;">RSS link</a>
-        </span>
-        <a class="help" href="wdi_guide.gif" target="_blank">?</a>
-    </td></tr><tr><td>
-        <div id="message" style="visibility: hidden;"></div>
-        <div id="map"></div>
-    </td></tr></table>
+    <img id="logo" src="wdi.png">
+    <div id="topbox">
+        <ul style="padding: 0 2em">
+            <li style="font-weight:bold">
+                Who did it?
+                •
+                <a href="https://github.com/simon04/whodidit">https://github.com/simon04/whodidit</a>
+                •
+                <a href="/whodidit.sql/" target="_blank">Database</a>
+                •
+                <a href="wdi_guide.gif" target="_blank">Help</a>
+            </li>
+            <li>
+                Age:
+                <select id="tage" onchange="setAge(this.value);" class="filtermargin">
+                    <option value="7">week</option>
+                </select>
+            </li>
+            <li>
+                Filter:
+                <input type="text" size="12" id="tchangeset" value="" placeholder="changeset">
+                <input type="text" size="12" id="tuser" value="" placeholder="user">
+                <input type="button" value="Apply" onclick="applyFilter();">
+            </li>
+            <li>
+                RSS:
+                <input type="button" value="Get RSS link" onclick="startDrawBBOX();" id="brss">
+                <a href="#" id="rssurl" style="visibility: hidden;">RSS link</a>
+            </li>
+        </ul>
+    </div>
+    <div id="message" style="visibility: hidden;"></div>
+    <div id="map"></div>
 </body>
 </html>

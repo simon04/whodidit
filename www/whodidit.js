@@ -92,11 +92,11 @@ function init() {
     function createPopup(feature) {
         var nodeinfo = feature.attributes.nodes_created + ' nodes created, ' + feature.attributes.nodes_modified + ' modified, ' + feature.attributes.nodes_deleted + ' deleted in this tile.<br>';
         var bbox = feature.geometry.bounds.clone().transform(projectTo, epsg4326);
-        var josmlink = '<div class="openjosm"><a href="http://127.0.0.1:8111/load_and_zoom?left='+round2(bbox.left)+'&top='+round2(bbox.top)+'&right='+round2(bbox.right)+'&bottom='+round2(bbox.bottom)+'" target="_blank">Open in JOSM</a>';
+        var josmlink = '<div class="openjosm"><a href="http://127.0.0.1:8111/load_and_zoom?left='+round2(bbox.left)+'&top='+round2(bbox.top)+'&right='+round2(bbox.right)+'&bottom='+round2(bbox.bottom)+'" target="_blank">Open in JOSM</a></div>';
         popup = new OpenLayers.Popup.FramedCloud("pop",
             feature.geometry.getBounds().getCenterLonLat(),
             null,
-            '<div class="markerContent">' + nodeinfo + 'Changesets: ' + feature.attributes.changesets + josmlink + '</div>',
+            '<div class="markerContent">' + nodeinfo + 'Changesets: ' + feature.attributes.changesets + '</div>' + josmlink,
             null,
             true,
             function() { selector.unselectAll(); }
@@ -108,26 +108,16 @@ function init() {
             callback: function(req) {
                 var json = new OpenLayers.Format.JSON();
                 var changesets = json.read(req.responseText);
-                var html = '<div class="markerContent">' + nodeinfo + '<br>';
+                var html = josmlink + '<div class="markerContent">' + nodeinfo + '<table id="changesets">';
                 var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
                 for( i = 0; i < changesets.length; i++ ) {
                     var ch = changesets[i];
-                    html += '<div class="changeset" style="white-space: nowrap;">';
-                    var color = ch['suspicious'] ? 'red' : 'green';
-                    var date_str = months[ch['change_time'].substr(5,2)-1] + ' ' + ch['change_time'].substr(8,2);
-                    html += '<span style="color: '+color+';">' + date_str + '</span>';
-                    html += ': <a href="http://openstreetmap.org/browse/changeset/' + ch['changeset_id'] + '" target="_blank">changeset</a>';
-                    html += ' <a href="#" title="Filter by this changeset" onclick="setChangeset(' + ch['changeset_id'] + '); return false;" class="filter">[F]</a>';
-                    html += ' by user <a href="http://openstreetmap.org/user/' + encodeURI(ch['user_name']) + '" target="_blank">' + htmlEscape(ch['user_name']) + '</a>';
-                    html += ' <a href="#" title="Filter by this user" onclick="setUser(\'' + htmlEscape(ch['user_name']) + '\'); return false;" class="filter">[F]</a>';
-                    html += '. <span class="stat">Nodes:<span class="graph"><span class="created">'+ch['nodes_created']+'</span><span class="modified">'+ch['nodes_modified']+'</span><span class="deleted">'+ch['nodes_deleted']+'</span></span></span>';
-                    html += ' <span class="stat">Ways:<span class="graph"><span class="created">'+ch['ways_created']+'</span><span class="modified">'+ch['ways_modified']+'</span><span class="deleted">'+ch['ways_deleted']+'</span></span></span>';
-                    html += ' <span class="stat">Rels:<span class="graph"><span class="created">'+ch['relations_created']+'</span><span class="modified">'+ch['relations_modified']+'</span><span class="deleted">'+ch['relations_deleted']+'</span></span></span>';
-                    if( ch['comment'] && ch['comment'].length > 2 && ch['comment'].substring(0,5) != 'BBOX:' )
-                        html += '<div class="comment">' + htmlEscape(ch['comment']) + '</div>';
-                    html += '</div>';
+                    ch.color = ch['suspicious'] ? 'red' : 'green';
+                    ch.date_str = months[ch['change_time'].substr(5,2)-1] + ' ' + ch['change_time'].substr(8,2);
+                    ch.nicecomment = ch['comment'] && ch['comment'].length > 2 && ch['comment'].substring(0,5) != 'BBOX:' ? ch['comment'] : undefined;
+                    html += tmpl('changeset_tmpl', ch);
                 }
-                html += josmlink + '</div>';
+                html += '</table>' + '</div>';
                 feature.popup.setContentHTML(html);
             }
         });
@@ -161,7 +151,7 @@ function init() {
             var json = new OpenLayers.Format.JSON();
             var changesets = json.read(req.responseText);
             if( changesets.length > 0 ) {
-                document.getElementById('whodidit').title = 'Last changeset from ' + changesets[0]['change_time'] + ' UTC';
+                document.getElementById('logo').title = 'Last changeset from ' + changesets[0]['change_time'] + ' UTC';
             }
         }
     });
@@ -252,30 +242,16 @@ function getParams() {
 }
 
 function setChangeset(ch) {
-    clearFilter();
-    if( ch ) {
-        document.getElementById('vuser').style.visibility = 'hidden';
-        document.getElementById('tchangeset').value = ch;
-        document.getElementById('bchangeset').value = 'Clear';
-        document.getElementById('tchangeset').disabled = true;
-        changeset = ch;
-        username = '';
-        document.getElementById('vwhere').style.visibility = 'inherit';
-    }
+    document.getElementById('tchangeset').value = ch;
+    changeset = ch;
+    //document.getElementById('vwhere').style.visibility = 'inherit';
     updateParams();
 }
 
 function setUser(ch) {
-    clearFilter();
-    if( ch ) {
-        document.getElementById('vchangeset').style.visibility = 'hidden';
-        document.getElementById('tuser').value = ch;
-        document.getElementById('buser').value = 'Clear';
-        document.getElementById('tuser').disabled = true;
-        changeset = '';
-        username = ch;
-        document.getElementById('vwhere').style.visibility = 'inherit';
-    }
+    document.getElementById('tuser').value = ch;
+    username = ch;
+    //document.getElementById('vwhere').style.visibility = 'inherit';
     updateParams();
 }
 
@@ -295,28 +271,9 @@ function setAge(ch) {
     updateParams();
 }
 
-function apply(what) {
-    if( changeset || username ) {
-        clearFilter();
-    } else if( what == 'changeset' ) {
-        setChangeset(document.getElementById('tchangeset').value);
-    } else if( what == 'user' ) {
-        setUser(document.getElementById('tuser').value);
-    }
-}
-
-function clearFilter() {
-    document.getElementById('tchangeset').disabled = false;
-    document.getElementById('tchangeset').value = '';
-    document.getElementById('bchangeset').value = 'Apply';
-    document.getElementById('vchangeset').style.visibility = 'inherit';
-    changeset = '';
-    document.getElementById('tuser').disabled = false;
-    document.getElementById('tuser').value = '';
-    document.getElementById('buser').value = 'Apply';
-    document.getElementById('vuser').style.visibility = 'inherit';
-    username = '';
-    document.getElementById('vwhere').style.visibility = 'hidden';
+function applyFilter() {
+    setChangeset(document.getElementById('tchangeset').value);
+    setUser(document.getElementById('tuser').value);
     updateParams();
 }
 
@@ -409,3 +366,39 @@ function populateAgeBox() {
 function round2(n) {
     return Math.round(n*1000)/1000;
 }
+
+// Simple JavaScript Templating
+// John Resig - http://ejohn.org/ - MIT Licensed
+(function(){
+  var cache = {};
+
+  this.tmpl = function tmpl(str, data){
+    // Figure out if we're getting a template, or if we need to
+    // load the template - and be sure to cache the result.
+    var fn = !/\W/.test(str) ?
+      cache[str] = cache[str] ||
+        tmpl(document.getElementById(str).innerHTML) :
+
+      // Generate a reusable function that will serve as a template
+      // generator (and which will be cached).
+      new Function("obj",
+        "var p=[],print=function(){p.push.apply(p,arguments);};" +
+
+        // Introduce the data as local variables using with(){}
+        "with(obj){p.push('" +
+
+        // Convert the template into pure JavaScript
+        str
+          .replace(/[\r\t\n]/g, " ")
+          .split("<%").join("\t")
+          .replace(/((^|%>)[^\t]*)'/g, "$1\r")
+          .replace(/\t=(.*?)%>/g, "',$1,'")
+          .split("\t").join("');")
+          .split("%>").join("p.push('")
+          .split("\r").join("\\'")
+      + "');}return p.join('');");
+
+    // Provide some basic currying to the user
+    return data ? fn( data ) : fn;
+  };
+})();
