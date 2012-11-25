@@ -282,12 +282,16 @@ function setUser(ch) {
 function setAge(ch) {
     age = ch;
     var sel = document.getElementById('tage');
-    var s;
-    for( i = sel.options.length-1; i >= 0; i-- ) {
-        if( sel.options[i].value - age >= 0 )
+    var s = -1;
+    for (var i = 0; i < sel.options.length; i++)
+        if (sel.options[i].value == age)
             s = i;
+    if (s >= 0) {
+        sel.selectedIndex = s;
+    } else {
+        sel.options[sel.options.length] = new Option(age, age);
+        sel.selectedIndex = sel.options.length - 1;
     }
-    sel.selectedIndex = s;
     updateParams();
 }
 
