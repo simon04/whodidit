@@ -39,18 +39,21 @@ $age_sql = $changeset ? '' : " AND t.change_time > Date_sub(UTC_TIMESTAMP(), INT
 $bbox_query = $extent ? '' : " AND Contains(GeomFromText('POLYGON(($bbox[1] $bbox[0], $bbox[3] $bbox[0], $bbox[3] $bbox[2], $bbox[1] $bbox[2], $bbox[1] $bbox[0]))'), latlon)";
 $editor = isset($_REQUEST['editor']) && strlen($_REQUEST['editor']) > 0 ? ' and c.created_by like \'%'.$db->escape_string($_REQUEST['editor']).'%\'' : '';
 if( isset($_REQUEST['user']) && strlen($_REQUEST['user']) > 0 ) {
-    $username = $_REQUEST['user'];
-    $eqsign = '=';
-    $aggregate = true;
-    if( substr($username, 0, 1) == '!' ) {
-        $ures = $db->query('select 1 from wdi_changesets where user_name = \''.$db->escape_string($username).'\' group by user_name limit 1');
-        if( $ures->num_rows == 0 ) {
-            $username = substr($username, 1);
-            $eqsign = '<>';
-            $aggregate = false; // it negates changeset filter, but this we can ignore
-        }
+    $usernames = preg_split('/\\s*,\\s*/', $_REQUEST['user']);
+    $usernames_in = array();
+    $usernames_notin = array();
+    foreach ($usernames as $u) {
+        if ($u[0] == '!' || $u[0] == '-')
+            $usernames_notin[] = substr($u, 1);
+        else
+            $usernames_in[] = $u;
     }
-    $user = " and c.user_name $eqsign '".$db->escape_string($username).'\'';
+    $aggregate = true;
+    $user = '';
+    if (count($usernames_in))
+        $user .= " and c.user_name in ('" . implode("','", array_map($db->escape_string, $usernames_in)) . "')";
+    if (count($usernames_notin))
+        $user .= " and c.user_name not in ('" . implode("','", array_map($db->escape_string, $usernames_notin)) . "')";
 } else
     $user = '';
 
