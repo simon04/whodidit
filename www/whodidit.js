@@ -277,6 +277,25 @@ function applyFilter() {
     updateParams();
 }
 
+function performSearch() {
+    OpenLayers.Request.GET({
+        url: 'http://nominatim.openstreetmap.org/search',
+        params: {
+            limit: 1,
+            format: 'json',
+            q: document.getElementById('tquery').value
+        },
+        callback: function(r) {
+            var obj = new OpenLayers.Format.JSON().read(r.responseText)
+            if (obj && obj[0] && obj[0].boundingbox) {
+                var bbox = obj[0].boundingbox;
+                var bounds = new OpenLayers.Bounds(bbox[2], bbox[0], bbox[3], bbox[1]).transform(new OpenLayers.Projection('EPSG:4326'), map.getProjectionObject());
+                map.zoomToExtent(bounds);
+            }
+        }
+    });
+}
+
 function updateParams() {
     if( vectorLayer ) {
         vectorLayer.protocol.options.params = getParams();

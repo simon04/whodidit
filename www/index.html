@@ -22,18 +22,19 @@
         #logo {
             z-index: 999;
             border-bottom: 1px solid rgba(255,255,255,0.9);
+            padding: 10px 0;
         }
         #topbox {
             margin-left: 120px;
             z-index: 998;
             padding: 5px;
-            height: 110px;
+            height: 130px;
             border-bottom: 1px solid rgba(255,255,255,0.9);
             border-right: 1px solid rgba(255,255,255,0.9);
         }
 
         div.olControlAttribution { bottom:30px; }
-        div.olcontrolzoom { margin-top: 120px; }
+        div.olcontrolzoom { margin-top: 140px; }
 
         .changeset { margin-bottom: 4px; }
         .graph { border: 1px black solid; list-style: none; }
@@ -107,6 +108,11 @@
                 <a href="/whodidit.sql/" target="_blank">Database</a>
                 •
                 <a href="wdi_guide.gif" target="_blank">Help</a>
+            </li>
+            <li>
+                Search:
+                <input type="text" size="12" id="tquery" value="" placeholder="query" title="Search location">
+                <input type="button" value="Search" title="Search and jump to first result" onclick="performSearch();">
             </li>
             <li>
                 Age:
