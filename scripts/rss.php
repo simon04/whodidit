@@ -1,5 +1,6 @@
 <? # Generates RSS feed for BBOX. Written by Ilya Zverev, licensed WTFPL.
 require("db.inc.php");
+require("lib.php");
 $bbox = parse_bbox(isset($_REQUEST['bbox']) ? $_REQUEST['bbox'] : '');
 if( !$bbox ) {
     print 'error: BBox required.';
@@ -7,8 +8,9 @@ if( !$bbox ) {
 }
 header('Content-type: application/rss+xml; charset=utf-8');
 $db = connect();
-$bbox_query = " AND Contains(GeomFromText('POLYGON(($bbox[1] $bbox[0], $bbox[3] $bbox[0], $bbox[3] $bbox[2], $bbox[1] $bbox[2], $bbox[1] $bbox[0]))'), latlon)";
-$sql = "select c.* from wdi_tiles t, wdi_changesets c where t.changeset_id = c.changeset_id $bbox_query group by c.changeset_id order by c.change_time desc limit 20";
+$bbox_query = get_bbox_query($bbox);
+$user_query = get_user_query();
+$sql = "select c.* from wdi_tiles t, wdi_changesets c where t.changeset_id = c.changeset_id $bbox_query $user_query group by c.changeset_id order by c.change_time desc limit 20";
 $res = $db->query($sql);
 $bbox_str = $bbox[0]*$tile_size.','.$bbox[1]*$tile_size.','.($bbox[2]+1)*$tile_size.','.($bbox[3]+1)*$tile_size;
 //\t<link>http://openstreetmap.org/?box=yes&amp;bbox=$bbox_str</link>

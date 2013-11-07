@@ -304,7 +304,8 @@ function featureAdded(feature) {
     boxControl.deactivate();
     document.getElementById('brss').value='Clear RSS link';
     document.getElementById('rssurl').style.visibility='inherit';
-    document.getElementById('rssurl').href=scripts + 'rss.php?bbox=' + feature.geometry.bounds.transform(projectTo, epsg4326).toBBOX();
+    var user = document.getElementById('tuser').value;
+    document.getElementById('rssurl').href=scripts + 'rss.php?bbox=' + feature.geometry.bounds.transform(projectTo, epsg4326).toBBOX() + (user ? '&user=' + user : '');
 }
 
 function zoomToTiles() {
