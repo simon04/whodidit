@@ -25,7 +25,7 @@ function init() {
     map = new OpenLayers.Map('map', {displayProjection: epsg4326});
 
     map.addLayer(new OpenLayers.Layer.OSM()); //Standard mapnik tiles
-    map.baseLayer.attribution = '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    map.baseLayer.attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
     permalink = new OpenLayers.Control.Permalink('permalink', null, {createParams: myCreateArgs});
     map.addControls([

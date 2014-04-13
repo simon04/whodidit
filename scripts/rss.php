@@ -13,7 +13,7 @@ $user_query = get_user_query();
 $sql = "select c.* from wdi_tiles t, wdi_changesets c where t.changeset_id = c.changeset_id $bbox_query $user_query group by c.changeset_id order by c.change_time desc limit 20";
 $res = $db->query($sql);
 $bbox_str = $bbox[0]*$tile_size.','.$bbox[1]*$tile_size.','.($bbox[2]+1)*$tile_size.','.($bbox[3]+1)*$tile_size;
-//\t<link>https://openstreetmap.org/?box=yes&amp;bbox=$bbox_str</link>
+//\t<link>https://www.openstreetmap.org/?box=yes&amp;bbox=$bbox_str</link>
 $latlon = 'lat='.(($bbox[3]+$bbox[1])*$tile_size/2).'&amp;lon='.(($bbox[2]+$bbox[0])*$tile_size/2);
 print <<<"EOT"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -32,11 +32,11 @@ while( $row = $res->fetch_assoc() ) {
     $untitled = !$row['comment'] || strlen($row['comment']) <= 2 || substr($row['comment'], 0, 5) == 'BBOX:';
     print "\t<item>\n";
     print "\t\t<title>${susp}User ".htmlspecialchars($row['user_name'])." has uploaded ".($untitled?'an untitled ':'a ')."changeset".($untitled?'':': &quot;'.htmlspecialchars($row['comment']).'&quot;')."</title>\n";
-    print "\t\t<link>https://openstreetmap.org/browse/changeset/${row['changeset_id']}</link>\n";
+    print "\t\t<link>https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}</link>\n";
     $date = strtotime($row['change_time']);
     $date_str = date(DATE_RSS, $date);
     print "\t\t<pubDate>$date_str</pubDate>\n";
-    $desc = "User <a href=\"https://openstreetmap.org/user/".urlencode($row['user_name'])."\">".htmlspecialchars($row['user_name'])."</a> has uploaded <a href=\"https://openstreetmap.org/browse/changeset/${row['changeset_id']}\">a changeset</a> in your watched area using ".htmlspecialchars($row['created_by']).", titled \"".htmlspecialchars($row['comment'])."\". <a href=\"$frontend_url?changeset=${row['changeset_id']}&show=1\">Show it on WhoDidIt</a>.";
+    $desc = "User <a href=\"https://www.openstreetmap.org/user/".urlencode($row['user_name'])."\">".htmlspecialchars($row['user_name'])."</a> has uploaded <a href=\"https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}\">a changeset</a> in your watched area using ".htmlspecialchars($row['created_by']).", titled \"".htmlspecialchars($row['comment'])."\". <a href=\"$frontend_url?changeset=${row['changeset_id']}&show=1\">Show it on WhoDidIt</a>.";
     $desc .= '<br><br>Statistics:<ul>';
     $desc .= '<li>Nodes: '.$row['nodes_created'].' created, '.$row['nodes_modified'].' modified, '.$row['nodes_deleted'].' deleted</li>';
     $desc .= '<li>Ways: '.$row['ways_created'].' created, '.$row['ways_modified'].' modified, '.$row['ways_deleted'].' deleted</li>';
