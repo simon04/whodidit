@@ -115,6 +115,7 @@ function init() {
                     ch.color = ch['suspicious'] ? 'red' : 'green';
                     ch.date_str = months[ch['change_time'].substr(5,2)-1] + ' ' + ch['change_time'].substr(8,2);
                     ch.nicecomment = ch['comment'] && ch['comment'].length > 2 && ch['comment'].substring(0,5) != 'BBOX:' ? ch['comment'] : undefined;
+                    ch.user_name_encoded = encodeURIComponent(ch.user_name);
                     html += tmpl('changeset_tmpl', ch);
                 }
                 html += '</table>' + '</div>';
