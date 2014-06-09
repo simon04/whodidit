@@ -8,6 +8,16 @@ You can check a working installation at http://zverik.osm.rambler.ru/whodidit/
 
 ## Installation
 
+### Perl and system dependencies
+
+You will need `libxml2` and the development headers:
+
+    apt-get install libxml2-dev 
+
+Install Perl dependencies
+
+    cpan DBIx::Simple LWP::Simple XML::LibXML::Reader Devel::Size
+
 ### Database
 
 Make a directory outside www root (for example, `/home/?/whodidit`)
