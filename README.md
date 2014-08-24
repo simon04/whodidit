@@ -4,7 +4,7 @@ This tool downloads replication diffs from OSM Planet site, calculates statistic
 and registers which 0.01-degree tiles were affected, and stores this in a MySQL database.
 A series of PHP scripts and a JS frontend are used to access that data.
 
-You can check a working installation at http://zverik.osm.rambler.ru/whodidit/
+You can check a working installation at http://simon04.dev.openstreetmap.org/whodidit/
 
 ## Installation
 
@@ -35,9 +35,6 @@ Add the script to crontab:
 Now each hour your database will be updated with fresh data. Note that the same osmChange
 file **should not** be processed twice: the database has no means of skipping already
 processed files.
-
-If you do not want to wait several days to import backlog of changesets, you can download
-a weekly backup (and a relevant state.txt) from http://zverik.osm.rambler.ru/whodidit/backup/
 
 ### Frontend
 
@@ -70,4 +67,6 @@ Then write your database parameters into `connect()` function in `db.inc.php`, a
 
 ## Author
 
-Everything here (except OpenLayers, of course) is written by Ilya Zverev, licensed WTFPL.
+The tool has been created by Ilya Zverev, licensed WTFPL, and has been modified/extended by Simon Legner.
+See https://github.com/simon04/whodidit/graphs/contributors for the full and detailed list of contributors.
+It internally uses OpenLayers, licensed BSD.

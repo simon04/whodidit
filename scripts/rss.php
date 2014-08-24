@@ -1,26 +1,54 @@
 <? # Generates RSS feed for BBOX. Written by Ilya Zverev, licensed WTFPL.
 require("db.inc.php");
 require("lib.php");
-$bbox = parse_bbox(isset($_REQUEST['bbox']) ? $_REQUEST['bbox'] : '');
-if( !$bbox ) {
-    print 'error: BBox required.';
+$wkt;
+$bbox_str;
+if (isset($_REQUEST['wkt'])) {
+    $wkt = $_REQUEST['wkt'];
+    $bbox_str = $wkt;
+} else if (isset($_REQUEST['bbox'])) {
+    $bbox = parse_bbox($_REQUEST['bbox']);
+    if ($bbox) {
+        $wkt = get_wkt_from_bbox($bbox);
+        $bbox_str = $bbox[0]*$tile_size.','.$bbox[1]*$tile_size.','.($bbox[2]+1)*$tile_size.','.($bbox[3]+1)*$tile_size;
+        $bbox_str = "BBOX [$bbox_str]";
+    }
+}
+if (!$wkt) {
+    header(' ', true, 400);
+    header('Content-type: plain/text');
+    $file = basename(__FILE__);
+    global $tile_size;
+    $factor = 1 / $tile_size;
+    print <<<EOT
+Error: bbox or wkt required.
+
+Supported arguments:
+- bbox
+- wkt
+- user
+
+Usage examples:
+- $file?bbox=12,46,13,47
+or equivalently (longutude and latitude multiplied by $factor)
+- $file?wkt=POLYGON((4600 1200, 4700 1200, 4700 1300, 4600 1300, 4600 1200))
+see also https://en.wikipedia.org/wiki/Well-known_text
+EOT;
     exit;
 }
 header('Content-type: application/rss+xml; charset=utf-8');
 $db = connect();
-$bbox_query = get_bbox_query($bbox);
+$bbox_query = get_bbox_query_for_wkt($wkt);
 $user_query = get_user_query();
 $sql = "select c.* from wdi_tiles t, wdi_changesets c where t.changeset_id = c.changeset_id $bbox_query $user_query group by c.changeset_id order by c.change_time desc limit 20";
 $res = $db->query($sql);
-$bbox_str = $bbox[0]*$tile_size.','.$bbox[1]*$tile_size.','.($bbox[2]+1)*$tile_size.','.($bbox[3]+1)*$tile_size;
-//\t<link>https://www.openstreetmap.org/?box=yes&amp;bbox=$bbox_str</link>
 $latlon = 'lat='.(($bbox[3]+$bbox[1])*$tile_size/2).'&amp;lon='.(($bbox[2]+$bbox[0])*$tile_size/2);
 print <<<"EOT"
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
 <channel>
-\t<title>WhoDidIt Feed for BBOX [$bbox_str]</title>
-\t<description>WhoDidIt feed for BBOX [$bbox_str]</description>
+\t<title>WhoDidIt Feed for $bbox_str</title>
+\t<description>WhoDidIt feed for $bbox_str</description>
 \t<link>$frontend_url?$latlon&amp;zoom=12</link>
 \t<generator>WhoDidIt</generator>
 \t<ttl>60</ttl>
