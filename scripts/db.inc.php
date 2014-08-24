@@ -9,15 +9,9 @@ function connect() {
     return $db;
 }
 
-function parse_bbox( $bbox_str ) {
-    global $tile_size;
-    if( !preg_match('/^-?[\d.]+(,-?[\d.]+){3}$/', $bbox_str) ) return 0;
-    $bbox = explode(',', $bbox_str);
-    for( $i = 0; $i < 4; $i++ )
-        $bbox[$i] = floor($bbox[$i]/$tile_size);
-    if( $bbox[2] < $bbox[0] ) { $t = $bbox[2]; $bbox[2] = $bbox[0]; $bbox[0] = $t; }
-    if( $bbox[3] < $bbox[1] ) { $t = $bbox[3]; $bbox[3] = $bbox[1]; $bbox[1] = $t; }
-    return $bbox;
+function db_escape_string($str) {
+    global $db;
+    return $db->escape_string($str);
 }
 
 function is_changeset_suspicious( $ch ) {
