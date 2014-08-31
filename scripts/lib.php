@@ -13,9 +13,9 @@ function get_user_query() {
         $aggregate = true;
         $user = '';
         if (count($usernames_in))
-            $user .= " and c.user_name in ('" . implode("','", array_map(db_escape_string, $usernames_in)) . "')";
+            $user .= " and c.user_name in ('" . implode("','", array_map('db_escape_string', $usernames_in)) . "')";
         if (count($usernames_notin))
-            $user .= " and c.user_name not in ('" . implode("','", array_map(db_escape_string, $usernames_notin)) . "')";
+            $user .= " and c.user_name not in ('" . implode("','", array_map('db_escape_string', $usernames_notin)) . "')";
     } else
         $user = '';
     return $user;
