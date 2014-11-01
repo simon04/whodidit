@@ -1,4 +1,5 @@
-<? # Returns json with complete data for specified changesets. Written by Ilya Zverev, licensed WTFPL.
+<?php
+# Returns json with complete data for specified changesets. Written by Ilya Zverev, licensed WTFPL.
 header('Content-type: application/json; charset=utf-8');
 require('db.inc.php');
 $latest = isset($_REQUEST['latest']) && $_REQUEST['latest'] == '1';
@@ -25,4 +26,3 @@ while( $row = $res->fetch_assoc() ) {
     print json_encode($row);
 }
 print ']';
-?>

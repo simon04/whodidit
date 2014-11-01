@@ -1,4 +1,4 @@
-<?
+<?php
 function get_user_query() {
     if (isset($_REQUEST['user']) && strlen($_REQUEST['user']) > 0) {
         $usernames = preg_split('/\\s*,\\s*/', $_REQUEST['user']);
@@ -44,5 +44,3 @@ function get_bbox_query_for_wkt($wkt) {
     $wkt = db_escape_string($wkt);
     return " AND Contains(GeomFromText('$wkt'), latlon)";
 }
-
-?>

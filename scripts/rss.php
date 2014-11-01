@@ -1,4 +1,5 @@
-<? # Generates RSS feed for BBOX. Written by Ilya Zverev, licensed WTFPL.
+<?php
+# Generates RSS feed for BBOX. Written by Ilya Zverev, licensed WTFPL.
 require("db.inc.php");
 require("lib.php");
 $wkt;
@@ -73,4 +74,3 @@ while( $row = $res->fetch_assoc() ) {
     print "\t</item>\n";
 }
 print "</channel>\n</rss>";
-?>

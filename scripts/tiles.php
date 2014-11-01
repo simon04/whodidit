@@ -1,4 +1,5 @@
-<? # Returns all tiles inside a bbox, possibly filtered. Written by Ilya Zverev, licensed WTFPL.
+<?php
+# Returns all tiles inside a bbox, possibly filtered. Written by Ilya Zverev, licensed WTFPL.
 require("db.inc.php");
 require("lib.php");
 header('Content-type: application/json; charset=utf-8');
@@ -133,4 +134,3 @@ while( $row = $res->fetch_assoc() ) {
     print json_encode($feature);
 }
 print "\n] }";
-?>

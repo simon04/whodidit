@@ -1,4 +1,5 @@
-<? # Some useful functions for whodidit scripts. Written by Ilya Zverev, licensed WTFPL.
+<?php
+# Some useful functions for whodidit scripts. Written by Ilya Zverev, licensed WTFPL.
 $tile_size = 0.01;
 $frontend_url = 'http://localhost/wdi/index.html';
 
@@ -28,4 +29,3 @@ function is_changeset_suspicious( $ch ) {
     // well, seems normal
     return false;
 }
-?>
