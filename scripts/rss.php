@@ -60,16 +60,18 @@ while( $row = $res->fetch_assoc() ) {
     $susp = is_changeset_suspicious($row) ? '[!] ' : '';
     $untitled = !$row['comment'] || strlen($row['comment']) <= 2 || substr($row['comment'], 0, 5) == 'BBOX:';
     print "\t<item>\n";
-    print "\t\t<title>${susp}User ".htmlspecialchars($row['user_name'])." has uploaded ".($untitled?'an untitled ':'a ')."changeset".($untitled?'':': &quot;'.htmlspecialchars($row['comment']).'&quot;')."</title>\n";
-    print "\t\t<link>https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}</link>\n";
+    print "\t\t<title>${susp}".($untitled?'[untitled changeset]':htmlspecialchars($row['comment']))."</title>\n";
+    print "\t\t<author>".htmlspecialchars($row['user_name'])."</author>\n";
+    print "\t\t<link>https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}#"."</link>\n";
     $date = strtotime($row['change_time']);
     $date_str = date(DATE_RSS, $date);
     print "\t\t<pubDate>$date_str</pubDate>\n";
-    $desc = "User <a href=\"https://www.openstreetmap.org/user/".urlencode($row['user_name'])."\">".htmlspecialchars($row['user_name'])."</a> has uploaded <a href=\"https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}\">a changeset</a> in your watched area using ".htmlspecialchars($row['created_by']).", titled \"".htmlspecialchars($row['comment'])."\". <a href=\"$frontend_url?changeset=${row['changeset_id']}&show=1\">Show it on WhoDidIt</a>.";
-    $desc .= '<br><br>Statistics:<ul>';
+    $desc = "<p>User <a href=\"https://www.openstreetmap.org/user/".rawurlencode($row['user_name'])."\">".htmlspecialchars($row['user_name'])."</a> has uploaded <a href=\"https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}\">a changeset</a> in your watched area using ".htmlspecialchars($row['created_by']).", titled \"".htmlspecialchars($row['comment'])."\"</p>";
+    $desc .= "<p>Show it <a href=\"$frontend_url?changeset=${row['changeset_id']}&show=1\">on WhoDidIt</a> or <a href=\"http://nrenner.github.io/achavi/?changeset=${row['changeset_id']}\">in Achavi</a>.</p>";
+    $desc .= '<p>Statistics:<ul>';
     $desc .= '<li>Nodes: '.$row['nodes_created'].' created, '.$row['nodes_modified'].' modified, '.$row['nodes_deleted'].' deleted</li>';
     $desc .= '<li>Ways: '.$row['ways_created'].' created, '.$row['ways_modified'].' modified, '.$row['ways_deleted'].' deleted</li>';
-    $desc .= '<li>Relations: '.$row['relations_created'].' created, '.$row['relations_modified'].' modified, '.$row['relations_deleted'].' deleted</li></ul>';
+    $desc .= '<li>Relations: '.$row['relations_created'].' created, '.$row['relations_modified'].' modified, '.$row['relations_deleted'].' deleted</li></ul></p>';
     print "\t\t<description>".htmlspecialchars($desc)."</description>\n";
     print "\t</item>\n";
 }
