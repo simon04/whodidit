@@ -140,7 +140,7 @@ sub process_osc {
             } elsif( $r->name eq 'delete' ) {
                 $state = 'deleted';
             } elsif( $r->name eq 'create' ) {
-                $state = 'created';;
+                $state = 'created';
             } elsif( ($r->name eq 'node' || $r->name eq 'way' || $r->name eq 'relation') && $state ) {
                 my $changeset = $r->getAttribute('changeset');
                 my $change = $comments{$changeset};
@@ -194,6 +194,7 @@ sub process_osc {
 }
 
 sub flush_tiles {my ($tiles, $chs) = @_;
+    fill_changesets(\%{$chs});
     printf STDERR "[Cnt/Mem: T=%d/%dk C=%d/%dk] ", scalar keys %{$tiles}, total_size($tiles)/1024, scalar keys %{$chs}, total_size($chs)/1024 if $verbose;
 
     my $sql_ch = <<CHSQL;
@@ -240,7 +241,7 @@ CHSQL
             $db->query($sql_t,
                 $t->{lat}, $t->{lon}, $t->{lat}, $t->{lon},
                 $t->{changeset}, $t->{time},
-                $t->{nodes_created}, $t->{nodes_modified}, $t->{nodes_deleted});
+                $t->{nodes_created}, $t->{nodes_modified}, $t->{nodes_deleted}) or die $db->error;
         }
         $db->commit;
     };
@@ -254,21 +255,45 @@ CHSQL
 sub get_changeset {
     my $changeset_id = shift;
     return unless $changeset_id =~ /^\d+$/;
-    my $resp = $ua->get("http://api.openstreetmap.org/api/0.6/changeset/".$changeset_id);
-    die "Failed to read changeset $changeset_id: ".$resp->status_line unless $resp->is_success;
-    my $content = $resp->content;
     my $c = {};
     $c->{id} = $changeset_id;
-    $c->{comment} = decode_xml_entities($1) if $content =~ /k=["']comment['"]\s+v="([^"]+)"/;
-    $c->{created_by} = decode_xml_entities($1) if $content =~ /k=["']created_by['"]\s+v="([^"]+)"/;
-    $content =~ /\suser="([^"]+)"/;
-    $c->{username} = decode_xml_entities($1) || '';
-    $content =~ /\suid="([^"]+)"/;
-    $c->{user_id} = $1 || die("No uid in changeset $changeset_id");
     $c->{nodes_created} = 0; $c->{nodes_modified} = 0; $c->{nodes_deleted} = 0;
     $c->{ways_created} = 0; $c->{ways_modified} = 0; $c->{ways_deleted} = 0;
     $c->{relations_created} = 0; $c->{relations_modified} = 0; $c->{relations_deleted} = 0;
     return $c;
+}
+
+sub fill_changesets {
+    my ($comments) = @_;
+    my @changeset_ids = keys %{$comments};
+    my @chunks;
+    push @chunks, [ splice @changeset_ids, 0, 100 ] while @changeset_ids;
+    foreach (@chunks) {
+        @changeset_ids = @{$_};
+        my $changesets_url = "http://api.openstreetmap.org/api/0.6/changesets/?changesets=".join(',',@changeset_ids);
+        open(my $FILE, "$wget -q -O- $changesets_url|") or die "Failed to open: $!";
+        my $r = XML::LibXML::Reader->new(IO => $FILE);
+        my $changeset_id;
+        while($r->read) {
+            if( $r->nodeType == XML_READER_TYPE_ELEMENT ) {
+                if( $r->name eq 'changeset' ) {
+                    $changeset_id = $r->getAttribute('id');
+                    $comments->{$changeset_id}->{username} = decode_xml_entities($r->getAttribute('user'));
+                    $comments->{$changeset_id}->{user_id}  = decode_xml_entities($r->getAttribute('uid'));
+                } elsif( $r->name eq 'tag' ) {
+                    my $k = $r->getAttribute('k');
+                    my $v = $r->getAttribute('v');
+                    if ($k eq "comment") {
+                        $comments->{$changeset_id}->{comment} = decode_xml_entities($v);
+                    }
+                    if ($k eq "created_by") {
+                        $comments->{$changeset_id}->{created_by} = decode_xml_entities($v);
+                    }
+                }
+            }
+        }
+        close($FILE);
+    }
 }
 
 sub decode_xml_entities {
