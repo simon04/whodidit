@@ -333,7 +333,7 @@ function featureAdded(feature) {
     document.getElementById('brss').value='Clear RSS link';
     document.getElementById('rssurl').style.visibility='inherit';
     var user = document.getElementById('tuser').value;
-    document.getElementById('rssurl').href=scripts + 'rss.php?bbox=' + feature.geometry.bounds.transform(projectTo, epsg4326).toBBOX() + (user ? '&user=' + user : '');
+    document.getElementById('rssurl').href=scripts + 'rss.php?bbox=' + feature.geometry.bounds.transform(projectTo, epsg4326).toBBOX() + (editor ? '&editor=' + editor : '') + (user ? '&user=' + user : '');
 }
 
 function zoomToTiles() {

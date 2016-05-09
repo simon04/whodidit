@@ -38,7 +38,7 @@ else
     $age = '7 day';
 $age_sql = $changeset ? '' : " AND t.change_time > Date_sub(UTC_TIMESTAMP(), INTERVAL $age)";
 $bbox_query = $extent ? '' : get_bbox_query($bbox);
-$editor = isset($_REQUEST['editor']) && strlen($_REQUEST['editor']) > 0 ? ' and c.created_by like \'%'.$db->escape_string($_REQUEST['editor']).'%\'' : '';
+$editor = get_editor_query();
 $user = get_user_query();
 
 if( $aggregate && !$aggregate_only_filtered && isset($aggregate_db_limit) && $aggregate_db_limit > 0 ) {

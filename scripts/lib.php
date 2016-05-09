@@ -21,6 +21,10 @@ function get_user_query() {
     return $user;
 }
 
+function get_editor_query() {
+    return isset($_REQUEST['editor']) && strlen($_REQUEST['editor']) > 0 ? ' and c.created_by like \'%'.db_escape_string($_REQUEST['editor']).'%\'' : '';
+}
+
 function parse_bbox( $bbox_str ) {
     global $tile_size;
     if( !preg_match('/^-?[\d.]+(,-?[\d.]+){3}$/', $bbox_str) ) return 0;
