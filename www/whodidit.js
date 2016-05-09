@@ -376,6 +376,7 @@ function populateAgeBox() {
     var sel = document.getElementById('tage');
     sel.options.length = 0;
     sel.options[sel.options.length] = new Option('6 hours', '6 hour');
+    sel.options[sel.options.length] = new Option('12 hours', '12 hour');
     sel.options[sel.options.length] = new Option('day', 1);
     sel.options[sel.options.length] = new Option('3 days', 3);
     sel.options[sel.options.length] = new Option('week', 7);
