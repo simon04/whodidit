@@ -15,9 +15,9 @@ if (isset($_REQUEST['wkt'])) {
         $bbox_str = "BBOX [$bbox_str]";
     }
 }
-if (!$wkt) {
+if (!isset($wkt)) {
     header(' ', true, 400);
-    header('Content-type: plain/text');
+    header('Content-type: text/plain');
     $file = basename(__FILE__);
     global $tile_size;
     $factor = 1 / $tile_size;
