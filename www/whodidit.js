@@ -249,6 +249,13 @@ function setChangeset(ch) {
     updateParams();
 }
 
+function setEditor(ch) {
+    document.getElementById('teditor').value = ch;
+    editor = ch;
+    //document.getElementById('vwhere').style.visibility = 'inherit';
+    updateParams();
+}
+
 function setUser(ch) {
     document.getElementById('tuser').value = ch;
     username = ch;
@@ -274,6 +281,7 @@ function setAge(ch) {
 
 function applyFilter() {
     setChangeset(document.getElementById('tchangeset').value);
+    setEditor(document.getElementById('teditor').value);
     setUser(document.getElementById('tuser').value);
     updateParams();
 }
