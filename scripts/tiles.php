@@ -55,7 +55,7 @@ if( $aggregate && !$aggregate_only_filtered && isset($aggregate_db_limit) && $ag
 
 $tile_limit = $aggregate ? $aggregate_tile_limit : $small_tile_limit;
 if( $tile_count > $tile_limit ) {
-    print '{ "error" : "Area is too large, please zoom in" }';
+    print "{ \"error\" : \"Area is too large, please zoom in (requested: $tile_count, max: $tile_limit)\" }";
     exit;
 }
 
