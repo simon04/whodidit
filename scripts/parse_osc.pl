@@ -150,6 +150,7 @@ sub process_osc {
                 }
                 $change->{$r->name.'s_'.$state}++;
                 my $time = $r->getAttribute('timestamp');
+                $time =~ s/Z\Z//;
                 $change->{time} = $time if $time gt $change->{time};
 
                 if( $r->name eq 'node' ) {
