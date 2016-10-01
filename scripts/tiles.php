@@ -99,10 +99,12 @@ $sql .= $age_sql;
 $sql .= $user;
 $sql .= $editor;
 $sql .= $changeset;
-$sql .= ' group by latlon limit '.($db_tile_limit+1);
+$sql .= ' group by rlat, rlon limit '.($db_tile_limit+1);
 
 $res = $db->query($sql);
-if( $res->num_rows > $db_tile_limit ) {
+if (!$res) {
+    die($db->error);
+} else if( $res->num_rows > $db_tile_limit ) {
     print '{ "error" : "Too many tiles to display, please zoom in" }';
     exit;
 }
