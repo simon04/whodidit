@@ -230,6 +230,9 @@ CHSQL
     eval {
         print STDERR "Writing changesets" if $verbose;
         for my $c (values %{$chs}) {
+            $c->{comment} = substr($c->{comment}, 0, 254);
+            $c->{comment} = strip_utf8mb4_chars($c->{comment});
+            $c->{username} = strip_utf8mb4_chars($c->{username});
             $db->query($sql_ch, $c->{id}, $c->{time}, $c->{comment}, $c->{user_id}, $c->{username}, $c->{created_by},
                 $c->{nodes_created}, $c->{nodes_modified}, $c->{nodes_deleted},
                 $c->{ways_created}, $c->{ways_modified}, $c->{ways_deleted},
@@ -241,9 +244,9 @@ CHSQL
             $db->query($sql_t,
                 $t->{lat}, $t->{lon}, $t->{lat}, $t->{lon},
                 $t->{changeset}, $t->{time},
-                $t->{nodes_created}, $t->{nodes_modified}, $t->{nodes_deleted});
+                $t->{nodes_created}, $t->{nodes_modified}, $t->{nodes_deleted}) or die $db->error;
         }
-        $db->commit;
+        $db->commit or die $db->error;
     };
     if( $@ ) {
         eval { $db->rollback; };
@@ -252,12 +255,22 @@ CHSQL
     print STDERR " OK" if $verbose;
 }
 
+sub strip_utf8mb4_chars() {
+    # MySQL "utf8" cannot handle Unicode characters above U+FFFF.
+    # https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-conversion.html
+    my $str = shift;
+    $str =~ s/[\x{10000}-\x{1ffff}]//g;
+    return $str;
+}
+
 sub get_changeset {
     my $changeset_id = shift;
     return unless $changeset_id =~ /^\d+$/;
     my $resp = $ua->get("http://api.openstreetmap.org/api/0.6/changeset/".$changeset_id);
     die "Failed to read changeset $changeset_id: ".$resp->status_line unless $resp->is_success;
     my $content = $resp->content;
+    use Encode;
+    $content = Encode::decode_utf8($content);
     my $c = {};
     $c->{id} = $changeset_id;
     $c->{comment} = decode_xml_entities($1) if $content =~ /k=["']comment['"]\s+v="([^"]+)"/;
