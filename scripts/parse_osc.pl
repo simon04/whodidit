@@ -250,8 +250,9 @@ CHSQL
         $db->commit or die $db->error;
     };
     if( $@ ) {
+        my $err = "Transaction failed: $@";
         eval { $db->rollback; };
-        die "Transaction failed: $@";
+        die $err;
     }
     print STDERR " OK" if $verbose;
 }
