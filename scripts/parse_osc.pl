@@ -57,6 +57,7 @@ if( $help ) {
 
 usage("Please specify database and user names") unless $database && $user;
 my $db = DBIx::Simple->connect("DBI:mysql:database=$database;host=$dbhost;mysql_enable_utf8=1", $user, $password, {RaiseError => 1});
+$db->query("SET sql_mode = ''");
 create_table() if $clear;
 my $ua = LWP::UserAgent->new();
 $ua->env_proxy;
