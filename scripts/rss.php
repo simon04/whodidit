@@ -63,6 +63,7 @@ while( $row = $res->fetch_assoc() ) {
     $untitled = !$row['comment'] || strlen($row['comment']) <= 2 || substr($row['comment'], 0, 5) == 'BBOX:';
     print "\t<item>\n";
     print "\t\t<title>${susp}User ".htmlspecialchars($row['user_name'])." has uploaded ".($untitled?'an untitled ':'a ')."changeset".($untitled?'':': &quot;'.htmlspecialchars($row['comment']).'&quot;')."</title>\n";
+    print "\t\t<guid>https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}</guid>\n";
     print "\t\t<link>https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}</link>\n";
     $date = strtotime($row['change_time']);
     $date_str = date(DATE_RSS, $date);
