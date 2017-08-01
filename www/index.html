@@ -74,6 +74,7 @@
                 <span style="color: <%=color%>;" title="<%=change_time%>"><%=date_str%></span>:
                 <a href="https://www.openstreetmap.org/changeset/<%=changeset_id%>" title="changeset" target="_blank"><%=changeset_id%></a>
                 <a href="http://nrenner.github.io/achavi/?changeset=<%=changeset_id%>" title="Show in Achavi" target="_blank">[A]</a>
+                <a href="https://osmcha.mapbox.com/<%=changeset_id%>" title="Show in OSMChA" target="_blank">[O]</a>
                 <a href="#" title="Filter by this Changeset" onclick="setChangeset(<%=changeset_id%>); return false;" class="filter">[F]</a>
                 by
                 <a href="https://www.openstreetmap.org/user/<%=user_name_encoded%>" title="user" target="_blank"><%=user_name%></a>
