@@ -27,7 +27,7 @@ if( !$bbox && !$extent ) {
 
 $aggregate = false;
 $db = connect();
-$changeset = isset($_REQUEST['changeset']) && preg_match('/^\d+$/', $_REQUEST['changeset']) ? ' and t.changeset_id = '.$_REQUEST['changeset'] : '';
+$changeset = get_changeset_query();
 if( strlen($changeset) > 0 ) $aggregate = true;
 //$age = isset($_REQUEST['age']) && preg_match('/^\d+$/', $_REQUEST['age']) ? $_REQUEST['age'] : 7;
 if (isset($_REQUEST['age']) && is_numeric($_REQUEST['age']))

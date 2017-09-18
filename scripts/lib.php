@@ -1,4 +1,10 @@
 <?php
+function get_changeset_query() {
+    return isset($_REQUEST['changeset']) && preg_match('/^\d+$/', $_REQUEST['changeset']) 
+        ? ' and t.changeset_id = '.$_REQUEST['changeset'] 
+        : '';
+}
+
 function get_user_query() {
     if (isset($_REQUEST['user']) && strlen($_REQUEST['user']) > 0) {
         $usernames = preg_split('/\\s*,\\s*/', $_REQUEST['user']);
