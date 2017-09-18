@@ -32,7 +32,7 @@ Supported arguments:
 
 Usage examples:
 - $file?bbox=12,46,13,47
-or equivalently (longutude and latitude multiplied by $factor)
+or equivalently (longitude and latitude multiplied by $factor)
 - $file?wkt=POLYGON((4600 1200, 4700 1200, 4700 1300, 4600 1300, 4600 1200))
 see also https://en.wikipedia.org/wiki/Well-known_text
 EOT;
