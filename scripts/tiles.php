@@ -36,7 +36,7 @@ else if (isset($_REQUEST['age']) && preg_match('/^\d+\s+(minute|hour|day|week|mo
     $age = $_REQUEST['age'];
 else
     $age = '7 day';
-$age_sql = $changeset ? '' : " AND t.change_time > Date_sub(UTC_TIMESTAMP(), INTERVAL $age)";
+$age_sql = $changeset && strpos($changeset, 'not in') === FALSE ? '' : " AND t.change_time > Date_sub(UTC_TIMESTAMP(), INTERVAL $age)";
 $bbox_query = $extent ? '' : get_bbox_query($bbox);
 $editor = get_editor_query();
 $user = get_user_query();
