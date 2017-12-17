@@ -68,7 +68,7 @@ while( $row = $res->fetch_assoc() ) {
     $date = strtotime($row['change_time']);
     $date_str = date(DATE_RSS, $date);
     print "\t\t<pubDate>$date_str</pubDate>\n";
-    $desc = "User <a href=\"https://www.openstreetmap.org/user/".urlencode($row['user_name'])."\">".htmlspecialchars($row['user_name'])."</a> has uploaded <a href=\"https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}\">a changeset</a> in your watched area using ".htmlspecialchars($row['created_by']).", titled \"".htmlspecialchars($row['comment'])."\". ";
+    $desc = "User <a href=\"https://www.openstreetmap.org/user/".htmlspecialchars($row['user_name'])."\">".htmlspecialchars($row['user_name'])."</a> has uploaded <a href=\"https://www.openstreetmap.org/browse/changeset/${row['changeset_id']}\">a changeset</a> in your watched area using ".htmlspecialchars($row['created_by']).", titled \"".htmlspecialchars($row['comment'])."\". ";
     $desc .= "<a href=\"$frontend_url?changeset=${row['changeset_id']}&show=1\">Show it on WhoDidIt</a>. ";
     $desc .= "<a href=\"https://nrenner.github.io/achavi/?changeset=${row['changeset_id']}\">Show it on Achavi</a>. ";
     $desc .= "<a href=\"https://osmcha.mapbox.com/${row['changeset_id']}\">Show it on OSMChA</a>. ";
