@@ -1,7 +1,7 @@
 <?php
 # Some useful functions for whodidit scripts. Written by Ilya Zverev, licensed WTFPL.
 $tile_size = 0.01;
-$frontend_url = 'http://localhost/wdi/index.html';
+$frontend_url = '/whodidit/';
 
 function connect() {
     # host, user, password, database

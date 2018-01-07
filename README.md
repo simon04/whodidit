@@ -4,7 +4,7 @@ This tool downloads replication diffs from OSM Planet site, calculates statistic
 and registers which 0.01-degree tiles were affected, and stores this in a MySQL database.
 A series of PHP scripts and a JS frontend are used to access that data.
 
-You can check a working installation at http://simon04.dev.openstreetmap.org/whodidit/
+You can check a working installation at https://simon04.dev.openstreetmap.org/whodidit/
 
 ## Installation
 
