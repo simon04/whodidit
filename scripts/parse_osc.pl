@@ -268,7 +268,7 @@ sub strip_utf8mb4_chars() {
 sub get_changeset {
     my $changeset_id = shift;
     return unless $changeset_id =~ /^\d+$/;
-    my $resp = $ua->get("http://api.openstreetmap.org/api/0.6/changeset/".$changeset_id);
+    my $resp = $ua->get("https://api.openstreetmap.org/api/0.6/changeset/".$changeset_id);
     die "Failed to read changeset $changeset_id: ".$resp->status_line unless $resp->is_success;
     my $content = $resp->content;
     use Encode;

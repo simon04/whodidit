@@ -29,7 +29,7 @@ right to create and update tables there. After that, create database tables:
 Add the script to crontab:
 
     6 * * * * /home/?/whodidit/parse_osc.pl -h <host> -d <database> -u <user> -p <password> \
-        -l http://planet.openstreetmap.org/replication/hour/ \
+        -l https://planet.openstreetmap.org/replication/hour/ \
         -s /home/?/whodidit/state.txt -w /usr/local/bin/wget
 
 Now each hour your database will be updated with fresh data. Note that the same osmChange
