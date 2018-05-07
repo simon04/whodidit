@@ -1,7 +1,7 @@
 <?php
 # Some useful functions for whodidit scripts. Written by Ilya Zverev, licensed WTFPL.
 $tile_size = 0.01;
-$frontend_url = '/whodidit/';
+$frontend_url = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/whodidit/';
 
 function connect() {
     # host, user, password, database
