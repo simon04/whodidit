@@ -4,6 +4,7 @@ require("db.inc.php");
 require("lib.php");
 $wkt;
 $bbox_str;
+$latlon = '';
 if (isset($_REQUEST['wkt'])) {
     $wkt = $_REQUEST['wkt'];
     $bbox_str = $wkt;
@@ -13,6 +14,7 @@ if (isset($_REQUEST['wkt'])) {
         $wkt = get_wkt_from_bbox($bbox);
         $bbox_str = $bbox[0]*$tile_size.','.$bbox[1]*$tile_size.','.($bbox[2]+1)*$tile_size.','.($bbox[3]+1)*$tile_size;
         $bbox_str = "BBOX [$bbox_str]";
+        $latlon = 'lat='.(($bbox[3]+$bbox[1])*$tile_size/2).'&amp;lon='.(($bbox[2]+$bbox[0])*$tile_size/2);
     }
 }
 if (!isset($wkt)) {
@@ -45,7 +47,6 @@ $editor_query = get_editor_query();
 $user_query = get_user_query();
 $sql = "select c.* from wdi_tiles t, wdi_changesets c where t.changeset_id = c.changeset_id $bbox_query $editor_query $user_query group by c.changeset_id order by c.change_time desc limit 20";
 $res = $db->query($sql);
-$latlon = 'lat='.(($bbox[3]+$bbox[1])*$tile_size/2).'&amp;lon='.(($bbox[2]+$bbox[0])*$tile_size/2);
 print <<<"EOT"
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
