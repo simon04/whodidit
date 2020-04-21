@@ -153,11 +153,10 @@ sub process_osc {
                 my $time = $r->getAttribute('timestamp');
                 $time =~ s/Z\Z//;
                 $change->{time} = $time if $time gt $change->{time};
-
                 if( $r->name eq 'node' ) {
                     my $lat = $r->getAttribute('lat');
                     my $lon = $r->getAttribute('lon');
-                    next if $lon < $bbox[0] || $lon > $bbox[2] || $lat < $bbox[1] || $lat > $bbox[3];
+                    next if $lon < $bbox[0] || $lon > $bbox[2] || $lat < $bbox[1] || $lat > $bbox[2];
                     $lat = floor($lat / $tile_size);
                     #$lat = int(89/$tile_size) if $lat >= 90/$tile_size;
                     $lon = floor($lon / $tile_size);
