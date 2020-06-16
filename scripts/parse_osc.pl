@@ -198,7 +198,7 @@ sub process_osc {
 sub flush_tiles {my ($tiles, $chs) = @_;
     printf STDERR "[Cnt/Mem: T=%d/%dk C=%d/%dk] ", scalar keys %{$tiles}, total_size($tiles)/1024, scalar keys %{$chs}, total_size($chs)/1024 if $verbose;
 
-    my $sql_ch = <<CHSQL;
+    my $sql_ch = <<SQL;
 insert into ${dbprefix}changesets
     (changeset_id, change_time, comment, user_id, user_name, created_by,
     nodes_created, nodes_modified, nodes_deleted,
@@ -216,8 +216,8 @@ on duplicate key update
     relations_created = relations_created + values(relations_created),
     relations_modified = relations_modified + values(relations_modified),
     relations_deleted = relations_deleted + values(relations_deleted)
-CHSQL
-    my $sql_t = <<CHSQL;
+SQL
+    my $sql_t = <<SQL;
 insert into ${dbprefix}tiles
     (lat, lon, latlon, changeset_id, change_time, nodes_created, nodes_modified, nodes_deleted)
     values (?, ?, Point(?,?), ?, ?, ?, ?, ?)
@@ -225,7 +225,7 @@ on duplicate key update
     nodes_created = nodes_created + values(nodes_created),
     nodes_modified = nodes_modified + values(nodes_modified),
     nodes_deleted = nodes_deleted + values(nodes_deleted)
-CHSQL
+SQL
 
     $db->begin;
     eval {
@@ -301,7 +301,7 @@ sub create_table {
     $db->query("drop table if exists ${dbprefix}tiles") or die $db->error;
     $db->query("drop table if exists ${dbprefix}changesets") or die $db->error;
 
-    my $sql = <<CREAT1;
+    my $sql = <<SQL;
 CREATE TABLE ${dbprefix}tiles (
     lat smallint(6) NOT NULL,
     lon smallint(6) NOT NULL,
@@ -315,9 +315,9 @@ CREATE TABLE ${dbprefix}tiles (
     SPATIAL KEY idx_latlon (latlon),
     KEY idx_time (change_time)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8
-CREAT1
+SQL
     $db->query($sql) or die $db->error;
-    $sql = <<CREAT2;
+    $sql = <<SQL;
 CREATE TABLE ${dbprefix}changesets (
     changeset_id int(10) unsigned NOT NULL,
     change_time datetime NOT NULL,
@@ -338,7 +338,7 @@ CREATE TABLE ${dbprefix}changesets (
     KEY idx_user (user_name),
     KEY idx_time (change_time)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8
-CREAT2
+SQL
     $db->query($sql) or die $db->error;
     print STDERR "Database tables were recreated.\n" if $verbose;
 }
@@ -348,7 +348,7 @@ sub usage {
     print STDERR "$msg\n\n" if defined($msg);
 
     my $prog = basename($0);
-    print STDERR << "EOF";
+    print STDERR << "TXT";
 This script loads into whodidit database contents of a single
 osmChange file, or a series of replication diffs. In latter case
 it relies on a state.txt file in current directory.
@@ -370,6 +370,6 @@ usage: $prog -i osc_file [-z] -d database -u user [-h host] [-p password] [-v]
  -c           : drop and recreate DB tables.
  -v           : display messages.
 
-EOF
+TXT
     exit;
 }

@@ -23,7 +23,7 @@ if (!isset($wkt)) {
     $file = basename(__FILE__);
     global $tile_size;
     $factor = 1 / $tile_size;
-    print <<<EOT
+    print <<<TXT
 Error: bbox or wkt required.
 
 Supported arguments:
@@ -37,7 +37,7 @@ Usage examples:
 or equivalently (longitude and latitude multiplied by $factor)
 - $file?wkt=POLYGON((4600 1200, 4700 1200, 4700 1300, 4600 1300, 4600 1200))
 see also https://en.wikipedia.org/wiki/Well-known_text
-EOT;
+TXT;
     exit;
 }
 header('Content-type: application/rss+xml; charset=utf-8');
@@ -47,7 +47,7 @@ $editor_query = get_editor_query();
 $user_query = get_user_query();
 $sql = "select c.* from wdi_tiles t, wdi_changesets c where t.changeset_id = c.changeset_id $bbox_query $editor_query $user_query group by c.changeset_id order by c.change_time desc limit 20";
 $res = $db->query($sql);
-print <<<"EOT"
+print <<<"XML"
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
 <channel>
@@ -57,7 +57,7 @@ print <<<"EOT"
 \t<generator>WhoDidIt</generator>
 \t<ttl>60</ttl>
 
-EOT;
+XML;
 date_default_timezone_set('UTC');
 while( $row = $res->fetch_assoc() ) {
     $susp = is_changeset_suspicious($row) ? '[!] ' : '';
