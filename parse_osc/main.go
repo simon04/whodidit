@@ -15,6 +15,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	tiles := whodidit.GetChangeTiles(osmChange)
-	fmt.Println(tiles)
+	for _, tile := range tiles {
+		fmt.Println(tile)
+	}
 }
