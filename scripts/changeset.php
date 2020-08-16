@@ -17,7 +17,7 @@ if( $latest ) {
     $where = 'changeset_id in ('.$_REQUEST['id'].') order by change_time desc';
 }
 
-$res = $db->query('select * from wdi_changesets where '.$where);
+$res = $db->query("select * from ${dbprefix}changesets where $where");
 print '[';
 $first = true;
 while( $row = $res->fetch_assoc() ) {

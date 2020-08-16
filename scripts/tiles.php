@@ -42,7 +42,7 @@ $editor = get_editor_query();
 $user = get_user_query();
 
 if( $aggregate && !$aggregate_only_filtered && isset($aggregate_db_limit) && $aggregate_db_limit > 0 ) {
-    $test_sql = 'select 1 from wdi_tiles t, wdi_changesets c where c.changeset_id = t.changeset_id'.
+    $test_sql = "select 1 from ${dbprefix}tiles t, ${dbprefix}changesets c where c.changeset_id = t.changeset_id".
         $bbox_query.
         $age_sql.
         $user.
@@ -61,7 +61,7 @@ if( $tile_count > $tile_limit ) {
 
 if( $extent ) {
     // write bbox and exit
-    $sql = 'select min(t.lon), min(t.lat), max(t.lon), max(t.lat) from wdi_tiles t, wdi_changesets c where c.changeset_id = t.changeset_id'.$age_sql.$user.$changeset;
+    $sql = "select min(t.lon), min(t.lat), max(t.lon), max(t.lat) from ${dbprefix}tiles t, ${dbprefix}changesets c where c.changeset_id = t.changeset_id".$age_sql.$user.$changeset;
     $res = $db->query($sql);
     if( $res === FALSE || $res->num_rows == 0 ) {
         print '{ "error" : "Cannot determine bounds" }';
@@ -91,8 +91,8 @@ $sql .= ', Substring_index(Group_concat(t.changeset_id ORDER BY t.changeset_id D
 $sql .= ', sum(t.nodes_created) as nc';
 $sql .= ', sum(t.nodes_modified) as nm';
 $sql .= ', sum(t.nodes_deleted) as nd';
-$sql .= ' from wdi_tiles t';
-$sql .= ', wdi_changesets c';
+$sql .= " from ${dbprefix}tiles t";
+$sql .= ", ${dbprefix}changesets c";
 $sql .= ' where c.changeset_id = t.changeset_id';
 $sql .= $bbox_query;
 $sql .= $age_sql;

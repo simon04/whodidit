@@ -45,7 +45,7 @@ $db = connect();
 $bbox_query = get_bbox_query_for_wkt($wkt);
 $editor_query = get_editor_query();
 $user_query = get_user_query();
-$sql = "select c.* from wdi_tiles t, wdi_changesets c where t.changeset_id = c.changeset_id $bbox_query $editor_query $user_query group by c.changeset_id order by c.change_time desc limit 20";
+$sql = "select c.* from ${dbprefix}tiles t, ${dbprefix}changesets c where t.changeset_id = c.changeset_id $bbox_query $editor_query $user_query group by c.changeset_id order by c.change_time desc limit 20";
 $res = $db->query($sql);
 print <<<"XML"
 <?xml version="1.0" encoding="UTF-8"?>
