@@ -20,4 +20,10 @@ func main() {
 	for _, tile := range tiles {
 		fmt.Println(tile)
 	}
+
+	changeset, err := osm.GetChangeset(85319105)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(changeset)
 }

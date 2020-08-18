@@ -55,7 +55,7 @@ type OsmPrimitive struct {
 	ID        uint64    `xml:"id,attr"`
 	Version   uint16    `xml:"version,attr"`
 	Timestamp time.Time `xml:"timestamp,attr"`
-	UserID    uint64    `xml:"uid,attr"`
+	UserID    uint32    `xml:"uid,attr"`
 	User      string    `xml:"user,attr"`
 	Changeset uint32    `xml:"changeset,attr"`
 	Lat       float64   `xml:"lat,attr"`
