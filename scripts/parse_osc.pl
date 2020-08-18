@@ -239,6 +239,7 @@ SQL
         for my $c (values %{$chs}) {
             $c->{comment} = substr($c->{comment}, 0, 254);
             $c->{comment} = strip_utf8mb4_chars($c->{comment});
+            $c->{username} = substr($c->{username}, 0, 96);
             $c->{username} = strip_utf8mb4_chars($c->{username});
             $sth_ch->execute($c->{id}, $c->{time}, $c->{comment}, $c->{user_id}, $c->{username}, $c->{created_by},
                 $c->{nodes_created}, $c->{nodes_modified}, $c->{nodes_deleted},
