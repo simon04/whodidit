@@ -15,17 +15,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	tiles := whodidit.GetChangeTiles(osmChange)
-	for _, tile := range tiles {
-		fmt.Println(tile)
-	}
-
 	changesets, err := osm.GetChangesetsForOsmChange(osmChange)
 	if err != nil {
 		panic(err)
 	}
-	for _, changeset := range changesets {
-		fmt.Println(changeset)
+
+	tiles, cs := whodidit.GetChangeTiles(osmChange, changesets)
+	for _, tile := range tiles {
+		fmt.Println(tile)
+	}
+	for _, c := range cs {
+		fmt.Println(c)
 	}
 }
