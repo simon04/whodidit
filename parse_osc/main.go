@@ -21,9 +21,11 @@ func main() {
 		fmt.Println(tile)
 	}
 
-	changeset, err := osm.GetChangeset(85319105)
+	changesets, err := osm.GetChangesets([]uint32{85319105, 85319106})
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(changeset)
+	for _, changeset := range changesets {
+		fmt.Println(changeset)
+	}
 }

@@ -5,13 +5,21 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
-func GetChangeset(id uint32) (*Changeset, error) {
-	url := fmt.Sprintf("https://api.openstreetmap.org/api/0.6/changeset/%d", id)
-	log.Printf("Fetching %s...", url)
-	req, err := http.NewRequest("GET", url, nil)
+func GetChangesets(ids []uint32) ([]Changeset, error) {
+	var url strings.Builder
+	url.WriteString("https://api.openstreetmap.org/api/0.6/changesets?changesets=")
+	for i, id := range ids {
+		if i > 0 {
+			url.WriteString(",")
+		}
+		url.WriteString(fmt.Sprintf("%d", id))
+	}
+	log.Printf("Fetching %v...", url)
+	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27,16 +35,16 @@ func GetChangeset(id uint32) (*Changeset, error) {
 	if err := xml.NewDecoder(res.Body).Decode(&api); err != nil {
 		return nil, err
 	}
-	return &api.Changeset, nil
+	return api.Changeset, nil
 }
 
 type ChangesetApi struct {
-	Version     string    `xml:"version,attr"`
-	Generator   string    `xml:"generator,attr"`
-	Copyright   string    `xml:"copyright,attr"`
-	Attribution string    `xml:"attribution,attr"`
-	License     string    `xml:"license,attr"`
-	Changeset   Changeset `xml:"changeset"`
+	Version     string      `xml:"version,attr"`
+	Generator   string      `xml:"generator,attr"`
+	Copyright   string      `xml:"copyright,attr"`
+	Attribution string      `xml:"attribution,attr"`
+	License     string      `xml:"license,attr"`
+	Changeset   []Changeset `xml:"changeset"`
 }
 
 type Changeset struct {
