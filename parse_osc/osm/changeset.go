@@ -10,16 +10,50 @@ import (
 )
 
 func GetChangesets(ids []uint32) ([]Changeset, error) {
-	var url strings.Builder
-	url.WriteString("https://api.openstreetmap.org/api/0.6/changesets?changesets=")
+	var csv strings.Builder
 	for i, id := range ids {
 		if i > 0 {
-			url.WriteString(",")
+			csv.WriteString(",")
 		}
-		url.WriteString(fmt.Sprintf("%d", id))
+		csv.WriteString(fmt.Sprintf("%d", id))
 	}
+	return GetChangesetsForCsv(csv.String())
+}
+
+func GetChangesetsForOsmChange(osmChange *OsmChange) ([]Changeset, error) {
+	ids := make(map[uint32]bool)
+	addPrimitives := func(ps []OsmPrimitive) {
+		for _, p := range ps {
+			ids[p.Changeset] = true
+		}
+	}
+	addActions := func(as []OsmAction) {
+		for _, a := range as {
+			addPrimitives(a.Node)
+			addPrimitives(a.Way)
+			addPrimitives(a.Relation)
+		}
+	}
+	addActions(osmChange.Create)
+	addActions(osmChange.Modify)
+	addActions(osmChange.Delete)
+
+	var csv strings.Builder
+	i := 0
+	for id := range ids {
+		if i > 0 {
+			csv.WriteString(",")
+		}
+		csv.WriteString(fmt.Sprintf("%d", id))
+		i++
+	}
+	return GetChangesetsForCsv(csv.String())
+}
+
+func GetChangesetsForCsv(changesets string) ([]Changeset, error) {
+	url := fmt.Sprintf("https://api.openstreetmap.org/api/0.6/changesets?changesets=%s", changesets)
 	log.Printf("Fetching %v...", url)
-	req, err := http.NewRequest("GET", url.String(), nil)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}

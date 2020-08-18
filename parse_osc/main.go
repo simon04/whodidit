@@ -21,7 +21,7 @@ func main() {
 		fmt.Println(tile)
 	}
 
-	changesets, err := osm.GetChangesets([]uint32{85319105, 85319106})
+	changesets, err := osm.GetChangesetsForOsmChange(osmChange)
 	if err != nil {
 		panic(err)
 	}
