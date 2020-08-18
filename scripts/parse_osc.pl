@@ -8,7 +8,7 @@ use strict;
 use Getopt::Long;
 use File::Basename;
 use IO::Uncompress::Gunzip;
-use DBIx::Simple;
+use DBI;
 use XML::LibXML::Reader qw( XML_READER_TYPE_ELEMENT XML_READER_TYPE_END_ELEMENT );
 use POSIX;
 use Devel::Size qw(total_size);
@@ -53,8 +53,11 @@ if( $help ) {
 }
 
 usage("Please specify database and user names") unless $database && $user;
-my $db = DBIx::Simple->connect("DBI:mysql:database=$database;host=$dbhost;mysql_enable_utf8=1", $user, $password, {RaiseError => 1});
-$db->query("SET sql_mode = ''");
+my $db = DBI->connect("DBI:mysql:database=$database;host=$dbhost;mysql_enable_utf8=1", $user, $password, {
+    AutoCommit => 0,
+    RaiseError => 1,
+});
+# $db->prepare("SET sql_mode = ''")->execute;
 create_table() if $clear;
 my $curl = Net::Curl::Easy->new;
 $curl->setopt(Net::Curl::Easy->CURLOPT_USERAGENT, "whodidit");
@@ -206,7 +209,7 @@ insert into ${dbprefix}changesets
     nodes_created, nodes_modified, nodes_deleted,
     ways_created, ways_modified, ways_deleted,
     relations_created, relations_modified, relations_deleted)
-    values (??)
+    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 on duplicate key update
     change_time = values(change_time),
     nodes_created = nodes_created + values(nodes_created),
@@ -228,15 +231,16 @@ on duplicate key update
     nodes_modified = nodes_modified + values(nodes_modified),
     nodes_deleted = nodes_deleted + values(nodes_deleted)
 SQL
+    my $sth_ch = $db->prepare($sql_ch);
+    my $sth_t = $db->prepare($sql_t);
 
-    $db->begin;
     eval {
         print STDERR "Writing changesets" if $verbose;
         for my $c (values %{$chs}) {
             $c->{comment} = substr($c->{comment}, 0, 254);
             $c->{comment} = strip_utf8mb4_chars($c->{comment});
             $c->{username} = strip_utf8mb4_chars($c->{username});
-            $db->query($sql_ch, $c->{id}, $c->{time}, $c->{comment}, $c->{user_id}, $c->{username}, $c->{created_by},
+            $sth_ch->execute($c->{id}, $c->{time}, $c->{comment}, $c->{user_id}, $c->{username}, $c->{created_by},
                 $c->{nodes_created}, $c->{nodes_modified}, $c->{nodes_deleted},
                 $c->{ways_created}, $c->{ways_modified}, $c->{ways_deleted},
                 $c->{relations_created}, $c->{relations_modified}, $c->{relations_deleted}) or die $db->error;
@@ -244,7 +248,7 @@ SQL
 
         print STDERR " and tiles" if $verbose;
         for my $t (values %{$tiles}) {
-            $db->query($sql_t,
+            $sth_t->execute(
                 $t->{lat}, $t->{lon}, $t->{lat}, $t->{lon},
                 $t->{changeset}, $t->{time},
                 $t->{nodes_created}, $t->{nodes_modified}, $t->{nodes_deleted}) or die $db->error;
@@ -302,8 +306,8 @@ sub decode_xml_entities {
 }
 
 sub create_table {
-    $db->query("drop table if exists ${dbprefix}tiles") or die $db->error;
-    $db->query("drop table if exists ${dbprefix}changesets") or die $db->error;
+    $db->do("drop table if exists ${dbprefix}tiles") or die $db->error;
+    $db->do("drop table if exists ${dbprefix}changesets") or die $db->error;
 
     my $sql = <<SQL;
 CREATE TABLE ${dbprefix}tiles (
@@ -320,7 +324,7 @@ CREATE TABLE ${dbprefix}tiles (
     KEY idx_time (change_time)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8
 SQL
-    $db->query($sql) or die $db->error;
+    $db->do($sql) or die $db->error;
     $sql = <<SQL;
 CREATE TABLE ${dbprefix}changesets (
     changeset_id int(10) unsigned NOT NULL,
@@ -343,7 +347,7 @@ CREATE TABLE ${dbprefix}changesets (
     KEY idx_time (change_time)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8
 SQL
-    $db->query($sql) or die $db->error;
+    $db->do($sql) or die $db->error;
     print STDERR "Database tables were recreated.\n" if $verbose;
 }
 
