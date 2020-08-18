@@ -7,7 +7,6 @@
 use strict;
 use Getopt::Long;
 use File::Basename;
-use LWP::Simple;
 use IO::Uncompress::Gunzip;
 use DBIx::Simple;
 use XML::LibXML::Reader qw( XML_READER_TYPE_ELEMENT XML_READER_TYPE_END_ELEMENT );
@@ -15,9 +14,8 @@ use POSIX;
 use Devel::Size qw(total_size);
 use Time::HiRes qw(gettimeofday tv_interval);
 use Cwd qw(abs_path);
+require Net::Curl::Easy;
 
-my $wget = `/usr/bin/which wget` || 'wget';
-$wget =~ s/\s//s;
 my $state_file = dirname(abs_path(__FILE__)).'/state.txt';
 my $stop_file = abs_path(__FILE__);
 $stop_file =~ s/(\.pl|$)/.stop/;
@@ -47,7 +45,6 @@ GetOptions(#'h|help' => \$help,
            't|tilesize=f' => \$tile_size,
            'c|clear' => \$clear,
            's|state=s' => \$state_file,
-           'w|wget=s' => \$wget,
            'b|bbox=s' => \$bbox_str,
            ) || usage();
 
@@ -59,8 +56,8 @@ usage("Please specify database and user names") unless $database && $user;
 my $db = DBIx::Simple->connect("DBI:mysql:database=$database;host=$dbhost;mysql_enable_utf8=1", $user, $password, {RaiseError => 1});
 $db->query("SET sql_mode = ''");
 create_table() if $clear;
-my $ua = LWP::UserAgent->new();
-$ua->env_proxy;
+my $curl = Net::Curl::Easy->new;
+$curl->setopt(Net::Curl::Easy->CURLOPT_USERAGENT, "whodidit");
 
 my @bbox = split(",", $bbox_str);
 die ("badly formed bounding box - use four comma-separated values for left longitude, ".
@@ -84,10 +81,13 @@ if( $filename ) {
 
 sub update_state {
     my $state_url = shift;
-    my $resp = $ua->get($state_url.'/state.txt');
-    die "Cannot download $state_url/state.txt: ".$resp->status_line unless $resp->is_success;
+    my $content;
+    $curl->setopt(Net::Curl::Easy->CURLOPT_URL, $state_url.'/state.txt');
+    $curl->setopt(Net::Curl::Easy->CURLOPT_WRITEDATA, \$content);
+    $curl->perform;
+    # die "Cannot download $state_url/state.txt: ".$resp->status_line unless $resp->is_success;
     print STDERR "Reading state from $state_url/state.txt\n" if $verbose;
-    $resp->content =~ /sequenceNumber=(\d+)/;
+    $content =~ /sequenceNumber=(\d+)/;
     die "No sequence number in downloaded state.txt" unless $1;
     my $last = $1;
 
@@ -116,9 +116,11 @@ sub update_state {
         die "$stop_file found, exiting" if -f $stop_file;
         my $osc_url = $state_url.sprintf("/%03d/%03d/%03d.osc.gz", int($state/1000000), int($state/1000)%1000, $state%1000);
         print STDERR $osc_url.': ' if $verbose;
-        open FH, "$wget -q -O- $osc_url|" or die "Failed to open: $!";
-        process_osc(new IO::Uncompress::Gunzip(*FH));
-        close FH;
+        my $response_body;
+        $curl->setopt(Net::Curl::Easy->CURLOPT_URL, $osc_url);
+        $curl->setopt(Net::Curl::Easy->CURLOPT_WRITEDATA, \$response_body);
+        $curl->perform;
+        process_osc(new IO::Uncompress::Gunzip(\$response_body));
 
         open STATE, ">$state_file" or die "Cannot write to $state_file";
         print STATE "sequenceNumber=$state\n";
@@ -268,9 +270,11 @@ sub strip_utf8mb4_chars() {
 sub get_changeset {
     my $changeset_id = shift;
     return unless $changeset_id =~ /^\d+$/;
-    my $resp = $ua->get("https://api.openstreetmap.org/api/0.6/changeset/".$changeset_id);
-    die "Failed to read changeset $changeset_id: ".$resp->status_line unless $resp->is_success;
-    my $content = $resp->content;
+    my $content;
+    $curl->setopt(Net::Curl::Easy->CURLOPT_URL, "https://api.openstreetmap.org/api/0.6/changeset/".$changeset_id);
+    $curl->setopt(Net::Curl::Easy->CURLOPT_WRITEDATA, \$content);
+    $curl->perform;
+    # die "Failed to read changeset $changeset_id: ".$resp->status_line unless $resp->is_success;
     use Encode;
     $content = Encode::decode_utf8($content);
     my $c = {};
@@ -366,7 +370,6 @@ usage: $prog -i osc_file [-z] -d database -u user [-h host] [-p password] [-v]
  -b bbox      : BBox of a watched region (minlon,minlat,maxlon,maxlat)
  -t tilesize  : size of a DB tile (default=$tile_size).
  -s state     : name of state file (default=$state_file).
- -w wget      : full path to wget tool (default=$wget).
  -c           : drop and recreate DB tables.
  -v           : display messages.
 
