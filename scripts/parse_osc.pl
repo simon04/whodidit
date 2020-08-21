@@ -53,7 +53,7 @@ if( $help ) {
 }
 
 usage("Please specify database and user names") unless $database && $user;
-my $db = DBI->connect("DBI:mysql:database=$database;host=$dbhost;mysql_enable_utf8=1", $user, $password, {
+my $db = DBI->connect("dbi:Pg:dbname=$database;host=$dbhost;port=5430", $user, $password, {
     AutoCommit => 0,
     RaiseError => 1,
 });
@@ -210,26 +210,26 @@ insert into ${dbprefix}changesets
     ways_created, ways_modified, ways_deleted,
     relations_created, relations_modified, relations_deleted)
     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-on duplicate key update
-    change_time = values(change_time),
-    nodes_created = nodes_created + values(nodes_created),
-    nodes_modified = nodes_modified + values(nodes_modified),
-    nodes_deleted = nodes_deleted + values(nodes_deleted),
-    ways_created = ways_created + values(ways_created),
-    ways_modified = ways_modified + values(ways_modified),
-    ways_deleted = ways_deleted + values(ways_deleted),
-    relations_created = relations_created + values(relations_created),
-    relations_modified = relations_modified + values(relations_modified),
-    relations_deleted = relations_deleted + values(relations_deleted)
+ON CONFLICT ON CONSTRAINT wdi_changesets_pkey DO UPDATE SET
+    change_time = EXCLUDED.change_time,
+    nodes_created = ${dbprefix}changesets.nodes_created + EXCLUDED.nodes_created,
+    nodes_modified = ${dbprefix}changesets.nodes_modified + EXCLUDED.nodes_modified,
+    nodes_deleted = ${dbprefix}changesets.nodes_deleted + EXCLUDED.nodes_deleted,
+    ways_created = ${dbprefix}changesets.ways_created + EXCLUDED.ways_created,
+    ways_modified = ${dbprefix}changesets.ways_modified + EXCLUDED.ways_modified,
+    ways_deleted = ${dbprefix}changesets.ways_deleted + EXCLUDED.ways_deleted,
+    relations_created = ${dbprefix}changesets.relations_created + EXCLUDED.relations_created,
+    relations_modified = ${dbprefix}changesets.relations_modified + EXCLUDED.relations_modified,
+    relations_deleted = ${dbprefix}changesets.relations_deleted + EXCLUDED.relations_deleted
 SQL
     my $sql_t = <<SQL;
 insert into ${dbprefix}tiles
     (lat, lon, latlon, changeset_id, change_time, nodes_created, nodes_modified, nodes_deleted)
     values (?, ?, Point(?,?), ?, ?, ?, ?, ?)
-on duplicate key update
-    nodes_created = nodes_created + values(nodes_created),
-    nodes_modified = nodes_modified + values(nodes_modified),
-    nodes_deleted = nodes_deleted + values(nodes_deleted)
+ON CONFLICT ON CONSTRAINT wdi_tiles_pkey DO UPDATE SET
+    nodes_created = ${dbprefix}tiles.nodes_created + EXCLUDED.nodes_created,
+    nodes_modified = ${dbprefix}tiles.nodes_modified + EXCLUDED.nodes_modified,
+    nodes_deleted = ${dbprefix}tiles.nodes_deleted + EXCLUDED.nodes_deleted
 SQL
     my $sth_ch = $db->prepare($sql_ch);
     my $sth_t = $db->prepare($sql_t);
@@ -312,41 +312,41 @@ sub create_table {
 
     my $sql = <<SQL;
 CREATE TABLE ${dbprefix}tiles (
-    lat smallint(6) NOT NULL,
-    lon smallint(6) NOT NULL,
-    latlon point NOT NULL,
-    changeset_id int(10) unsigned NOT NULL,
-    change_time datetime NOT NULL,
-    nodes_created smallint(5) unsigned NOT NULL,
-    nodes_modified smallint(5) unsigned NOT NULL,
-    nodes_deleted smallint(5) unsigned NOT NULL,
-    PRIMARY KEY (changeset_id,lat,lon),
-    SPATIAL KEY idx_latlon (latlon),
-    KEY idx_time (change_time)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	lat int2 NOT NULL,
+	lon int2 NOT NULL,
+	latlon point NOT NULL,
+	changeset_id int4 NOT NULL,
+	change_time timestamp NOT NULL,
+	nodes_created int2 NOT NULL,
+	nodes_modified int2 NOT NULL,
+	nodes_deleted int2 NOT NULL,
+	CONSTRAINT ${dbprefix}tiles_pkey PRIMARY KEY (changeset_id, lat, lon)
+);
+CREATE INDEX ${dbprefix}tiles_change_time_idx ON ${dbprefix}tiles USING btree (change_time);
+CREATE INDEX ${dbprefix}tiles_latlon_idx ON ${dbprefix}tiles USING gist (latlon);
 SQL
     $db->do($sql) or die $db->error;
     $sql = <<SQL;
 CREATE TABLE ${dbprefix}changesets (
-    changeset_id int(10) unsigned NOT NULL,
-    change_time datetime NOT NULL,
-    comment varchar(254) DEFAULT NULL,
-    user_id mediumint(8) unsigned NOT NULL,
-    user_name varchar(96) NOT NULL,
-    created_by varchar(64) DEFAULT NULL,
-    nodes_created smallint(5) unsigned NOT NULL,
-    nodes_modified smallint(5) unsigned NOT NULL,
-    nodes_deleted smallint(5) unsigned NOT NULL,
-    ways_created smallint(5) unsigned NOT NULL,
-    ways_modified smallint(5) unsigned NOT NULL,
-    ways_deleted smallint(5) unsigned NOT NULL,
-    relations_created smallint(5) unsigned NOT NULL,
-    relations_modified smallint(5) unsigned NOT NULL,
-    relations_deleted smallint(5) unsigned NOT NULL,
-    PRIMARY KEY (changeset_id),
-    KEY idx_user (user_name),
-    KEY idx_time (change_time)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8
+	changeset_id int4 NOT NULL,
+	change_time timestamp NOT NULL,
+	"comment" varchar(254) NULL DEFAULT NULL::character varying,
+	user_id int4 NOT NULL,
+	user_name varchar(96) NOT NULL,
+	created_by varchar(64) NULL DEFAULT NULL::character varying,
+	nodes_created int2 NOT NULL,
+	nodes_modified int2 NOT NULL,
+	nodes_deleted int2 NOT NULL,
+	ways_created int2 NOT NULL,
+	ways_modified int2 NOT NULL,
+	ways_deleted int2 NOT NULL,
+	relations_created int2 NOT NULL,
+	relations_modified int2 NOT NULL,
+	relations_deleted int2 NOT NULL,
+	CONSTRAINT ${dbprefix}changesets_pkey PRIMARY KEY (changeset_id)
+);
+CREATE INDEX ${dbprefix}changesets_change_time_idx ON ${dbprefix}changesets USING btree (change_time);
+CREATE INDEX ${dbprefix}changesets_user_name_idx ON ${dbprefix}changesets USING btree (user_name);
 SQL
     $db->do($sql) or die $db->error;
     print STDERR "Database tables were recreated.\n" if $verbose;
