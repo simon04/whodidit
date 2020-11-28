@@ -73,5 +73,5 @@ function get_wkt_from_bbox($bbox) {
 
 function get_bbox_query_for_wkt($wkt) {
     $wkt = db_escape_string($wkt);
-    return " AND Contains(GeomFromText('$wkt'), latlon)";
+    return " AND ST_Contains(ST_GeomFromText('$wkt'), latlon)";
 }
