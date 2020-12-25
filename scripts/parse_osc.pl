@@ -220,7 +220,7 @@ SQL
     my $sql_t = <<SQL;
 insert into ${dbprefix}tiles
     (lat, lon, latlon, changeset_id, change_time, nodes_created, nodes_modified, nodes_deleted)
-    values (?, ?, Point(?,?), ?, ?, ?, ?, ?)
+    values (?, ?, ST_SRID(Point(?,?),3857), ?, ?, ?, ?, ?)
 on duplicate key update
     nodes_created = nodes_created + values(nodes_created),
     nodes_modified = nodes_modified + values(nodes_modified),
@@ -305,7 +305,7 @@ sub create_table {
 CREATE TABLE ${dbprefix}tiles (
     lat smallint(6) NOT NULL,
     lon smallint(6) NOT NULL,
-    latlon point NOT NULL,
+    latlon point NOT NULL SRID 3857,
     changeset_id int(10) unsigned NOT NULL,
     change_time datetime NOT NULL,
     nodes_created smallint(5) unsigned NOT NULL,
