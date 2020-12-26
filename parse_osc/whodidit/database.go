@@ -2,6 +2,7 @@ package whodidit
 
 import (
 	"database/sql"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -13,7 +14,8 @@ type WdiDB struct {
 }
 
 func OpenDB() *WdiDB {
-	db, err := sql.Open("mysql", "user:pass@/database")
+	dsn := os.ExpandEnv("${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}/${MYSQL_DATABASE}")
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		panic(err)
 	}
