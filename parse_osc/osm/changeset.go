@@ -38,6 +38,7 @@ func GetChangesetsForOsmChange(osmChange *OsmChange) ([]Changeset, error) {
 	addActions(osmChange.Modify)
 	addActions(osmChange.Delete)
 
+	var changesets []Changeset
 	var csv strings.Builder
 	i := 0
 	for id := range ids {
@@ -46,8 +47,25 @@ func GetChangesetsForOsmChange(osmChange *OsmChange) ([]Changeset, error) {
 		}
 		csv.WriteString(fmt.Sprintf("%d", id))
 		i++
+		// fetch changesets in chunks of 80
+		if i >= 80 {
+			cs, err := GetChangesetsForCsv(csv.String())
+			if err != nil {
+				return nil, err
+			}
+			changesets = append(changesets, cs...)
+			csv.Reset()
+			i = 0
+		}
 	}
-	return GetChangesetsForCsv(csv.String())
+	if csv.Len() > 0 {
+		cs, err := GetChangesetsForCsv(csv.String())
+		if err != nil {
+			return nil, err
+		}
+		changesets = append(changesets, cs...)
+	}
+	return changesets, nil
 }
 
 func GetChangesetsForCsv(changesets string) ([]Changeset, error) {
