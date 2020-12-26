@@ -29,7 +29,7 @@ func GetChangeTiles(osmChange *osm.OsmChange, cs []osm.Changeset) (ChangeTileCol
 	for _, action := range osmChange.Create {
 		for _, node := range action.Node {
 			idx := NewChangeTileIndex(node)
-			tile := tiles.GetOrCreate(idx)
+			tile := tiles.GetOrCreate(idx, changesets[node.Changeset].Timestamp)
 			tile.NodesCreated++
 			changesets[node.Changeset].NodesCreated++
 		}
@@ -43,7 +43,7 @@ func GetChangeTiles(osmChange *osm.OsmChange, cs []osm.Changeset) (ChangeTileCol
 	for _, action := range osmChange.Delete {
 		for _, node := range action.Node {
 			idx := NewChangeTileIndex(node)
-			tile := tiles.GetOrCreate(idx)
+			tile := tiles.GetOrCreate(idx, changesets[node.Changeset].Timestamp)
 			tile.NodesDeleted++
 			changesets[node.Changeset].NodesDeleted++
 		}
@@ -57,7 +57,7 @@ func GetChangeTiles(osmChange *osm.OsmChange, cs []osm.Changeset) (ChangeTileCol
 	for _, action := range osmChange.Modify {
 		for _, node := range action.Node {
 			idx := NewChangeTileIndex(node)
-			tile := tiles.GetOrCreate(idx)
+			tile := tiles.GetOrCreate(idx, changesets[node.Changeset].Timestamp)
 			tile.NodesModified++
 			changesets[node.Changeset].NodesModified++
 		}
@@ -74,13 +74,14 @@ func GetChangeTiles(osmChange *osm.OsmChange, cs []osm.Changeset) (ChangeTileCol
 
 type ChangeTileCollection map[ChangeTileIndex]*ChangeTile
 
-func (tiles *ChangeTileCollection) GetOrCreate(idx ChangeTileIndex) *ChangeTile {
+func (tiles *ChangeTileCollection) GetOrCreate(idx ChangeTileIndex, timestamp time.Time) *ChangeTile {
 	tile, ok := (*tiles)[idx]
 	if ok {
 		return tile
 	}
 	tile = &ChangeTile{
 		ChangeTileIndex: idx,
+		Timestamp:       timestamp,
 		NodesCreated:    0,
 		NodesModified:   0,
 		NodesDeleted:    0,
@@ -105,6 +106,7 @@ func NewChangeTileIndex(node osm.OsmPrimitive) ChangeTileIndex {
 
 type ChangeTile struct {
 	ChangeTileIndex
+	Timestamp     time.Time
 	NodesCreated  uint32
 	NodesModified uint32
 	NodesDeleted  uint32

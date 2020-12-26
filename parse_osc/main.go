@@ -21,10 +21,7 @@ func main() {
 	}
 
 	tiles, cs := whodidit.GetChangeTiles(osmChange, changesets)
-	for _, tile := range tiles {
-		fmt.Println(tile)
-	}
-	for _, c := range cs {
-		fmt.Println(c)
-	}
+	db := whodidit.OpenDB()
+	defer db.CloseDB()
+	db.InsertDB(tiles, cs)
 }
