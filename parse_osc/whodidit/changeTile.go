@@ -13,7 +13,7 @@ func GetChangeTiles(osmChange *osm.OsmChange, cs []osm.Changeset) (ChangeTileCol
 	changesets := make(ChangesetCollection)
 	for _, c := range cs {
 		changesets[c.ID] = &Changeset{
-			c.ID, c.ClosedAt, c.UserID, c.User, "", "",
+			c.ID, c.CreatedAt, c.UserID, c.User, "", "",
 			0, 0, 0, 0, 0, 0, 0, 0, 0,
 		}
 		for _, t := range c.Tag {
@@ -32,12 +32,15 @@ func GetChangeTiles(osmChange *osm.OsmChange, cs []osm.Changeset) (ChangeTileCol
 			tile := tiles.GetOrCreate(idx, node.Timestamp)
 			tile.NodesCreated++
 			changesets[node.Changeset].NodesCreated++
+			changesets[node.Changeset].UpdateTimestamp(node.Timestamp)
 		}
 		for _, w := range action.Way {
 			changesets[w.Changeset].WaysCreated++
+			changesets[w.Changeset].UpdateTimestamp(w.Timestamp)
 		}
 		for _, r := range action.Relation {
 			changesets[r.Changeset].RelationsCreated++
+			changesets[r.Changeset].UpdateTimestamp(r.Timestamp)
 		}
 	}
 	for _, action := range osmChange.Delete {
@@ -46,12 +49,15 @@ func GetChangeTiles(osmChange *osm.OsmChange, cs []osm.Changeset) (ChangeTileCol
 			tile := tiles.GetOrCreate(idx, node.Timestamp)
 			tile.NodesDeleted++
 			changesets[node.Changeset].NodesDeleted++
+			changesets[node.Changeset].UpdateTimestamp(node.Timestamp)
 		}
 		for _, w := range action.Way {
 			changesets[w.Changeset].WaysDeleted++
+			changesets[w.Changeset].UpdateTimestamp(w.Timestamp)
 		}
 		for _, r := range action.Relation {
 			changesets[r.Changeset].RelationsDeleted++
+			changesets[r.Changeset].UpdateTimestamp(r.Timestamp)
 		}
 	}
 	for _, action := range osmChange.Modify {
@@ -60,12 +66,15 @@ func GetChangeTiles(osmChange *osm.OsmChange, cs []osm.Changeset) (ChangeTileCol
 			tile := tiles.GetOrCreate(idx, node.Timestamp)
 			tile.NodesModified++
 			changesets[node.Changeset].NodesModified++
+			changesets[node.Changeset].UpdateTimestamp(node.Timestamp)
 		}
 		for _, w := range action.Way {
 			changesets[w.Changeset].WaysModified++
+			changesets[w.Changeset].UpdateTimestamp(w.Timestamp)
 		}
 		for _, r := range action.Relation {
 			changesets[r.Changeset].RelationsModified++
+			changesets[r.Changeset].UpdateTimestamp(r.Timestamp)
 		}
 	}
 
@@ -130,4 +139,10 @@ type Changeset struct {
 	RelationsCreated  uint32
 	RelationsModified uint32
 	RelationsDeleted  uint32
+}
+
+func (c Changeset) UpdateTimestamp(timestamp time.Time) {
+	if timestamp.After(c.Timestamp) {
+		c.Timestamp = timestamp
+	}
 }
