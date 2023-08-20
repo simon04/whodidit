@@ -322,7 +322,7 @@ CREATE TABLE ${dbprefix}changesets (
     changeset_id int(10) unsigned NOT NULL,
     change_time datetime NOT NULL,
     comment varchar(254) DEFAULT NULL,
-    user_id mediumint(8) unsigned NOT NULL,
+    user_id int(10) unsigned NOT NULL,
     user_name varchar(96) NOT NULL,
     created_by varchar(64) DEFAULT NULL,
     nodes_created smallint(5) unsigned NOT NULL,
