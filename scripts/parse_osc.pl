@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # This tool either processes a single osc file or downloads replication osc base on state file.
 # The result is inserted into whodidit database.
