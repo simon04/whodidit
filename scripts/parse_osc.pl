@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # This tool either processes a single osc file or downloads replication osc base on state file.
 # The result is inserted into whodidit database.
@@ -34,8 +34,10 @@ my $tile_size = 0.01;
 my $clear;
 my $bbox_str = '-180,-90,180,90';
 my $dbprefix = 'wdi_';
+my $user_agent = 'whodidit';
+my $hours_to_import_if_no_previous_state = 0;
 
-GetOptions(#'h|help' => \$help,
+GetOptions('help' => \$help,
            'v|verbose' => \$verbose,
            'i|input=s' => \$filename,
            'z|gzip' => \$zipped,
@@ -51,15 +53,22 @@ GetOptions(#'h|help' => \$help,
            'b|bbox=s' => \$bbox_str,
            ) || usage();
 
-if( $help ) {
-  usage();
-}
+usage() if($help);
 
 usage("Please specify database and user names") unless $database && $user;
 my $db = DBIx::Simple->connect("DBI:mysql:database=$database;host=$dbhost;mysql_enable_utf8=1", $user, $password, {RaiseError => 1});
 $db->query("SET sql_mode = ''");
 create_table() if $clear;
-my $ua = LWP::UserAgent->new();
+
+if (!$filename && !$url) {
+    if ($clear) {
+        exit 0;
+    } else {
+        usage("Please specify either filename or state.txt URL or --clear");
+    }
+}
+
+my $ua = LWP::UserAgent->new('agent' => $user_agent);
 $ua->env_proxy;
 
 my @bbox = split(",", $bbox_str);
@@ -78,8 +87,6 @@ if( $filename ) {
     $url =~ s#^#http://# unless $url =~ m#://#;
     $url =~ s#/$##;
     update_state($url);
-} else {
-    usage("Please specify either filename or state.txt URL");
 }
 
 sub update_state {
@@ -94,7 +101,7 @@ sub update_state {
     if( !-f $state_file ) {
         # if state file does not exist, create it with the latest state
         open STATE, ">$state_file" or die "Cannot write to $state_file";
-        print STATE "sequenceNumber=$last\n";
+        printf STATE "sequenceNumber=%d\n", $last - $hours_to_import_if_no_previous_state;
         close STATE;
     }
 
@@ -116,7 +123,7 @@ sub update_state {
         die "$stop_file found, exiting" if -f $stop_file;
         my $osc_url = $state_url.sprintf("/%03d/%03d/%03d.osc.gz", int($state/1000000), int($state/1000)%1000, $state%1000);
         print STDERR $osc_url.': ' if $verbose;
-        open FH, "$wget -q -O- $osc_url|" or die "Failed to open: $!";
+        open FH, "$wget -U$user_agent -q -O- $osc_url|" or die "Failed to open: $!";
         process_osc(new IO::Uncompress::Gunzip(*FH));
         close FH;
 
@@ -129,11 +136,12 @@ sub update_state {
 sub process_osc {
     my $handle = shift;
     my $r = XML::LibXML::Reader->new(IO => $handle);
-    my %comments;
-    my %tiles;
     my $state = '';
-    my $tilesc = 0;
     my $clock = [gettimeofday];
+
+    my @blocks = ();
+    my @changeset_ids = ();
+
     while($r->read) {
         if( $r->nodeType == XML_READER_TYPE_ELEMENT ) {
             if( $r->name eq 'modify' ) {
@@ -141,58 +149,91 @@ sub process_osc {
             } elsif( $r->name eq 'delete' ) {
                 $state = 'deleted';
             } elsif( $r->name eq 'create' ) {
-                $state = 'created';;
+                $state = 'created';
             } elsif( ($r->name eq 'node' || $r->name eq 'way' || $r->name eq 'relation') && $state ) {
-                my $changeset = $r->getAttribute('changeset');
-                my $change = $comments{$changeset};
-                if( !defined($change) ) {
-                    $change = get_changeset($changeset);
-                    $comments{$changeset} = $change;
-                }
-                $change->{$r->name.'s_'.$state}++;
-                my $time = $r->getAttribute('timestamp');
-                $time =~ s/Z\Z//;
-                $change->{time} = $time if $time gt $change->{time};
+                my %block = (
+                    operation => $state,
+                    changeset => $r->getAttribute('changeset'),
+                    name => $r->name,
+                    timestamp => $r->getAttribute('timestamp'),
+                    lat => $r->getAttribute('lat'),
+                    lon => $r->getAttribute('lon'),
+                );
 
-                if( $r->name eq 'node' ) {
-                    my $lat = $r->getAttribute('lat');
-                    my $lon = $r->getAttribute('lon');
-                    next if $lon < $bbox[0] || $lon > $bbox[2] || $lat < $bbox[1] || $lat > $bbox[3];
-                    $lat = floor($lat / $tile_size);
-                    #$lat = int(89/$tile_size) if $lat >= 90/$tile_size;
-                    $lon = floor($lon / $tile_size);
-                    #$lon = int(179/$tile_size) if $lon >= 180/$tile_size;
+                next if ($block{'name'} ne 'node' ||
+                    ($block{'lon'} < $bbox[0] || $block{'lon'} > $bbox[2] ||
+                     $block{'lat'} < $bbox[1] || $block{'lat'} > $bbox[3]));
 
-                    my $key = "$lat,$lon,$changeset";
-                    my $tile = $tiles{$key};
-                    if( !defined($tile) ) {
-                        $tile = {
-                            lat => $lat,
-                            lon => $lon,
-                            changeset => $changeset,
-                            nodes_created => 0,
-                            nodes_modified => 0,
-                            nodes_deleted => 0,
-                            time => $change->{time}
-                        };
-                        $tiles{$key} = $tile;
-                        $tilesc++;
-                    }
-                    $tile->{'nodes_'.$state}++;
+                push(@blocks, \%block);
+                push(@changeset_ids, $block{'changeset'});
+                @changeset_ids = do { my %seen; grep { !$seen{$_}++ } @changeset_ids };
 
-                    if( $tilesc % 10**5 == 0 ) {
-                        flush_tiles(\%tiles, \%comments);
-                        %comments = ();
-                        %tiles = ();
-                    }
+                if (scalar @changeset_ids eq 100) {
+                    process_changeset_block (\@blocks, \@changeset_ids);
+                    @blocks = ();
+                    @changeset_ids = ();
                 }
             }
         } elsif( $r->nodeType == XML_READER_TYPE_END_ELEMENT ) {
             $state = '' if( $r->name eq 'delete' || $r->name eq 'modify' || $r->name eq 'create' );
         }
     }
-    flush_tiles(\%tiles, \%comments) if scalar %tiles;
+
+    process_changeset_block (\@blocks, \@changeset_ids);
+
     printf STDERR ", %d secs\n", tv_interval($clock) if $verbose;
+}
+
+sub process_changeset_block {
+    my @blocks = @{$_[0]};
+    my @changeset_ids = @{$_[1]};
+
+    my $changesets = get_changesets(\@changeset_ids);
+
+    my %comments;
+    my %tiles;
+    my $tilesc = 0;
+    for my $block (@blocks) {
+        my $changeset = $block->{'changeset'};
+        my $change = $comments{$changeset};
+        if( !defined($change) ) {
+            $change = $changesets->{$changeset};
+            $comments{$changeset} = $change;
+        }
+
+        $change->{$block->{'name'}.'s_'.$block->{'operation'}}++;
+        my $time = $block->{'timestamp'};
+        $time =~ s/Z\Z//;
+        $change->{time} = $time if $time gt $change->{time};#
+        if( $block->{'name'} eq 'node' ) {
+            my $lat = floor($block->{'lat'} / $tile_size);
+            my $lon = floor($block->{'lon'} / $tile_size);
+            my $key = "$lat,$lon,$changeset";
+            my $tile = $tiles{$key};
+            if( !defined($tile) ) {
+                $tile = {
+                    lat => $lat,
+                    lon => $lon,
+                    changeset => $changeset,
+                    nodes_created => 0,
+                    nodes_modified => 0,
+                    nodes_deleted => 0,
+                    time => $change->{time}
+                };
+                $tiles{$key} = $tile;
+                $tilesc++;
+            }
+            $tile->{'nodes_'.$block->{'operation'}}++;
+            if( $tilesc % 10**5 == 0 ) {
+                flush_tiles(\%tiles, \%comments);
+                %comments = ();
+                %tiles = ();
+            }
+        }
+
+    }
+
+    flush_tiles(\%tiles, \%comments) if scalar %tiles;
 }
 
 sub flush_tiles {my ($tiles, $chs) = @_;
@@ -265,26 +306,51 @@ sub strip_utf8mb4_chars() {
     return $str;
 }
 
-sub get_changeset {
-    my $changeset_id = shift;
-    return unless $changeset_id =~ /^\d+$/;
-    my $resp = $ua->get("https://api.openstreetmap.org/api/0.6/changeset/".$changeset_id);
-    die "Failed to read changeset $changeset_id: ".$resp->status_line unless $resp->is_success;
-    my $content = $resp->content;
+sub get_changesets { my ($changeset_ids) = @_;
+    my %changesets;
+
+    return \%changesets if (scalar @$changeset_ids eq 0);
+
+    my $resp = $ua->get("https://api.openstreetmap.org/api/0.6/changesets?changesets=".join(",", @$changeset_ids));
+    die("Failed to get changesets " . join(",", @$changeset_ids) . ": " . $resp->status_line . ", " . $resp->content) unless $resp->is_success;
+
     use Encode;
-    $content = Encode::decode_utf8($content);
-    my $c = {};
-    $c->{id} = $changeset_id;
-    $c->{comment} = decode_xml_entities($1) if $content =~ /k=["']comment['"]\s+v="([^"]+)"/;
-    $c->{created_by} = decode_xml_entities($1) if $content =~ /k=["']created_by['"]\s+v="([^"]+)"/;
-    $content =~ /\suser="([^"]+)"/;
-    $c->{username} = decode_xml_entities($1) || '';
-    $content =~ /\suid="([^"]+)"/;
-    $c->{user_id} = $1 || die("No uid in changeset $changeset_id");
-    $c->{nodes_created} = 0; $c->{nodes_modified} = 0; $c->{nodes_deleted} = 0;
-    $c->{ways_created} = 0; $c->{ways_modified} = 0; $c->{ways_deleted} = 0;
-    $c->{relations_created} = 0; $c->{relations_modified} = 0; $c->{relations_deleted} = 0;
-    return $c;
+    my $r = XML::LibXML::Reader->new(string => Encode::decode_utf8($resp->content));
+
+    die unless $r->read;
+    die unless $r->name eq 'osm';
+
+    while ($r->read) {
+        if ($r->name eq 'changeset' && $r->nodeType == XML_READER_TYPE_ELEMENT) {
+            my %current = (
+                id => $r->getAttribute('id'),
+                username => $r->getAttribute('user'),
+                user_id => $r->getAttribute('uid'),
+                nodes_created => 0,
+                nodes_modified => 0,
+                nodes_deleted => 0,
+                ways_created => 0,
+                ways_modified => 0,
+                ways_deleted => 0,
+                relations_created => 0,
+                relations_modified => 0,
+                relations_deleted => 0,
+            );
+            while ($r->read && !($r->name eq 'changeset' && $r->nodeType == XML_READER_TYPE_END_ELEMENT)) {
+                if ($r->name eq 'tag' && $r->nodeType == XML_READER_TYPE_ELEMENT) {
+                    if ($r->getAttribute('k') eq 'comment') {
+                        $current{'comment'} = $r->getAttribute('v');
+                    }
+                    elsif ($r->getAttribute('k') eq 'created_by') {
+                        $current{'created_by'} = $r->getAttribute('v');
+                    }
+                }
+            }
+            $changesets{$current{'id'}} = \%current;
+        }
+    }
+
+    return \%changesets;
 }
 
 sub decode_xml_entities {

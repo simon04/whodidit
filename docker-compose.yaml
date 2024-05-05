@@ -1,0 +1,73 @@
+services:
+  database:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM mysql:8
+        RUN microdnf install perl perl-DBD-MySQL perl-XML-LibXML \
+         && cpan -T DBIx::Simple
+        COPY scripts/parse_osc.pl /
+        COPY docker/setup.sh /docker-entrypoint-initdb.d/setup.sh
+      pull: true
+    volumes:
+      - wdi-database:/var/lib/mysql
+    environment:
+      MYSQL_SERVER_HOST: localhost
+      MYSQL_USER: wdi
+      MYSQL_PASSWORD: "${wdi_password}"
+      MYSQL_DATABASE: wdi
+      MYSQL_RANDOM_ROOT_PASSWORD: true
+
+  webserver:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM erseco/alpine-php-webserver
+        RUN mkdir -p /var/www/html/whodidit/scripts/ \
+         && echo '<?php'                                                                                           > /var/www/html/whodidit/scripts/config.inc.php \
+         && echo '$$tile_size = 0.01;'                                                                            >> /var/www/html/whodidit/scripts/config.inc.php \
+         && echo '$$frontend_url = $$_SERVER["REQUEST_SCHEME"] . "://" . $$_SERVER["HTTP_HOST"] . "/whodidit/";'  >> /var/www/html/whodidit/scripts/config.inc.php \
+         && echo '$$db_hostname = "database";'                                                                    >> /var/www/html/whodidit/scripts/config.inc.php \
+         && echo '$$db_database = "wdi";'                                                                         >> /var/www/html/whodidit/scripts/config.inc.php \
+         && echo '$$db_username = "wdi";'                                                                         >> /var/www/html/whodidit/scripts/config.inc.php \
+         && echo '$$db_password = "${wdi_password}";'                                                             >> /var/www/html/whodidit/scripts/config.inc.php \
+         && echo '?>'                                                                                             >> /var/www/html/whodidit/scripts/config.inc.php
+        COPY www /var/www/html
+        COPY scripts/changeset.php /var/www/html/whodidit/scripts/
+        COPY scripts/db.inc.php /var/www/html/whodidit/scripts/
+        COPY scripts/lib.php /var/www/html/whodidit/scripts/
+        COPY scripts/rss.php /var/www/html/whodidit/scripts/
+        COPY scripts/tiles.php /var/www/html/whodidit/scripts/
+      pull: true
+    ports:
+      - 8080:8080
+
+  updates:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM oraclelinux:9-slim
+        RUN microdnf install perl perl-DBD-MySQL perl-XML-LibXML perl-LWP-Protocol-https cronie wget \
+         && cpan -T DBIx::Simple
+        COPY scripts/parse_osc.pl /
+        COPY docker/update.sh /update.sh
+        RUN echo "export MYSQL_SERVER_HOST='database'"                                > /update_wrap.sh \
+         && echo "export MYSQL_USER='wdi'"                                           >> /update_wrap.sh \
+         && echo "export MYSQL_PASSWORD='${wdi_password}'"                           >> /update_wrap.sh \
+         && echo "export MYSQL_DATABASE='wdi'"                                       >> /update_wrap.sh \
+         && echo "#export WDI_UPDATE_BBOX='3,3,4,4' # enable to limit to given bbox" >> /update_wrap.sh \
+         && echo "/update.sh"                                                        >> /update_wrap.sh \
+         && chmod +x /update_wrap.sh                                                                    \
+         && echo '5 * * * * root /update_wrap.sh' > /etc/crontab
+        ENTRYPOINT /usr/sbin/crond -ns -x bit
+      pull: true
+    volumes:
+      - wdi-state:/wdi
+
+volumes:
+  wdi-database:
+  wdi-state:
+
+secrets:
+  wdi_password:
+    environment: wdi_password
