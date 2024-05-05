@@ -66,7 +66,7 @@ if (!$filename && !$url) {
     }
 }
 
-my $ua = LWP::UserAgent->new();
+my $ua = LWP::UserAgent->new('agent' => 'whodidit');
 $ua->env_proxy;
 
 my @bbox = split(",", $bbox_str);
