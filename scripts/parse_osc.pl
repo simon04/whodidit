@@ -35,7 +35,7 @@ my $clear;
 my $bbox_str = '-180,-90,180,90';
 my $dbprefix = 'wdi_';
 
-GetOptions(#'h|help' => \$help,
+GetOptions('help' => \$help,
            'v|verbose' => \$verbose,
            'i|input=s' => \$filename,
            'z|gzip' => \$zipped,
@@ -51,14 +51,21 @@ GetOptions(#'h|help' => \$help,
            'b|bbox=s' => \$bbox_str,
            ) || usage();
 
-if( $help ) {
-  usage();
-}
+usage() if($help);
 
 usage("Please specify database and user names") unless $database && $user;
 my $db = DBIx::Simple->connect("DBI:mysql:database=$database;host=$dbhost;mysql_enable_utf8=1", $user, $password, {RaiseError => 1});
 $db->query("SET sql_mode = ''");
 create_table() if $clear;
+
+if (!$filename && !$url) {
+    if ($clear) {
+        exit 0;
+    } else {
+        usage("Please specify either filename or state.txt URL or --clear");
+    }
+}
+
 my $ua = LWP::UserAgent->new();
 $ua->env_proxy;
 
@@ -78,8 +85,6 @@ if( $filename ) {
     $url =~ s#^#http://# unless $url =~ m#://#;
     $url =~ s#/$##;
     update_state($url);
-} else {
-    usage("Please specify either filename or state.txt URL");
 }
 
 sub update_state {
