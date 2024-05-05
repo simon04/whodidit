@@ -34,6 +34,7 @@ my $tile_size = 0.01;
 my $clear;
 my $bbox_str = '-180,-90,180,90';
 my $dbprefix = 'wdi_';
+my $user_agent = 'whodidit';
 
 GetOptions('help' => \$help,
            'v|verbose' => \$verbose,
@@ -66,7 +67,7 @@ if (!$filename && !$url) {
     }
 }
 
-my $ua = LWP::UserAgent->new('agent' => 'whodidit');
+my $ua = LWP::UserAgent->new('agent' => $user_agent);
 $ua->env_proxy;
 
 my @bbox = split(",", $bbox_str);
@@ -121,7 +122,7 @@ sub update_state {
         die "$stop_file found, exiting" if -f $stop_file;
         my $osc_url = $state_url.sprintf("/%03d/%03d/%03d.osc.gz", int($state/1000000), int($state/1000)%1000, $state%1000);
         print STDERR $osc_url.': ' if $verbose;
-        open FH, "$wget -q -O- $osc_url|" or die "Failed to open: $!";
+        open FH, "$wget -U$user_agent -q -O- $osc_url|" or die "Failed to open: $!";
         process_osc(new IO::Uncompress::Gunzip(*FH));
         close FH;
 
