@@ -8,6 +8,20 @@ You can check a working installation at https://simon04.dev.openstreetmap.org/wh
 
 ## Installation
 
+There is a docker-compose.yml which should be self-contained. It isn't really hardened for security,
+so might not be a good idea to use for more than local testing.
+
+    wdi_password=password docker compose up --build
+
+should be enough.
+
+If you're using this local setup to work around the upstream website being down, it is suggested to
+edit `scripts/parse_osc.pl` around line 38 first, changing `my $hours_to_import_if_no_previous_state = 0;`
+to the number of hours the upstream site has been down, e.g. `my $hours_to_import_if_no_previous_state = 24 * 20;`
+for 20 days.
+
+For manual setup, see the following sections.
+
 ### Perl and system dependencies
 
 You will need `libxml2` and the development headers:
