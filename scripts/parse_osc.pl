@@ -35,6 +35,7 @@ my $clear;
 my $bbox_str = '-180,-90,180,90';
 my $dbprefix = 'wdi_';
 my $user_agent = 'whodidit';
+my $hours_to_import_if_no_previous_state = 0;
 
 GetOptions('help' => \$help,
            'v|verbose' => \$verbose,
@@ -100,7 +101,7 @@ sub update_state {
     if( !-f $state_file ) {
         # if state file does not exist, create it with the latest state
         open STATE, ">$state_file" or die "Cannot write to $state_file";
-        print STATE "sequenceNumber=$last\n";
+        printf STATE "sequenceNumber=%d\n", $last - $hours_to_import_if_no_previous_state;
         close STATE;
     }
 
