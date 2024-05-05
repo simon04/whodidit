@@ -2,6 +2,7 @@
 # Returns json with complete data for specified changesets. Written by Ilya Zverev, licensed WTFPL.
 header('Content-type: application/json; charset=utf-8');
 require('db.inc.php');
+require('lib.php');
 $latest = isset($_REQUEST['latest']) && $_REQUEST['latest'] == '1';
 $id = isset($_REQUEST['id']) && preg_match('/^[\d,]+$/', $_REQUEST['id']) ? $_REQUEST['id'] : 0;
 if( !$latest && !$id ) {

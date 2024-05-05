@@ -46,7 +46,7 @@ Update the line `<script>var scripts = 'http://localhost/wdi/scripts/';</script>
 with the absolute URL of the directory you've put PHP files in. Then edit
 `db.inc.php` script, updating `$frontend_url` variable with the absolute path to `index.html`.
 
-Then write your database parameters into `connect()` function in `db.inc.php`, and you're set.
+Then write your database parameters into a new file `scripts/config.inc.php` in the format given in `scripts/config.inc.php.template`.
 
 ## What do scripts do?
 
