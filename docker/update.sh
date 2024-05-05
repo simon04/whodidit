@@ -1,5 +1,10 @@
 #!/bin/bash
 set -euo pipefail
+
+test -e /update.sh.lock && exit 0
+touch /update.sh.lock
+trap 'rm /update.sh.lock' EXIT
+
 /parse_osc.pl \
   --host "${MYSQL_SERVER_HOST}" \
   --user "${MYSQL_USER}" \
