@@ -44,7 +44,7 @@ func OpenDB() *WdiDB {
 	tiles, err := db.Prepare(`
 		insert into wdi_tiles
 			(lat, lon, latlon, changeset_id, change_time, nodes_created, nodes_modified, nodes_deleted)
-			values (?, ?, ST_SRID(Point(?,?),3857), ?, ?, ?, ?, ?)
+			values (?, ?, ST_PointFromWKB(Point(?,?),3857), ?, ?, ?, ?, ?)
 		on duplicate key update
 			nodes_created = nodes_created + values(nodes_created),
 			nodes_modified = nodes_modified + values(nodes_modified),
