@@ -1,0 +1,9 @@
+[Service]
+Environment=MYSQL_DATABASE=simon04
+Environment=MYSQL_HOST=
+Environment=MYSQL_PASSWORD=xxx
+Environment=MYSQL_USER=simon04
+ExecStart=/home/simon04/bin/parse_osc
+ExecStartPost=/usr/bin/curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/c212230b-2502-4e54-b3a0-8c2680410bbb
+RuntimeMaxSec=5min
+Type=oneshot
