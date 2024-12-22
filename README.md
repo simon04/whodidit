@@ -8,31 +8,27 @@ You can check a working installation at https://simon04.dev.openstreetmap.org/wh
 
 ## Installation
 
-### Perl and system dependencies
+Install Go.
 
-You will need `libxml2` and the development headers:
+```sh
+cd parse_osc/
+go build
+ls parse_osc
+```
 
-    apt-get install libxml2-dev 
+Create database tables, see `ddl.sql`.
 
-Install Perl dependencies
+Install systemd.
 
-    cpan DBIx::Simple LWP::Simple XML::LibXML::Reader Devel::Size
+```sh
+mkdir -p $HOME/.config/systemd/user/
+cp systemd/parse_osc.* $HOME/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now parse_osc.timer
+systemctl --user list-timers
+```
 
-### Database
-
-Make a directory outside www root (for example, `/home/?/whodidit`)
-and place `parse_osc.pl` there. Then create mysql database with utf8 collation and grant a user
-right to create and update tables there. After that, create database tables:
-
-    ./parse_osc.pl -h <host> -d <database> -u <user> -p <password> -c -v
-
-Add the script to crontab:
-
-    6 * * * * /home/?/whodidit/parse_osc.pl -h <host> -d <database> -u <user> -p <password> \
-        -l https://planet.openstreetmap.org/replication/hour/ \
-        -s /home/?/whodidit/state.txt -w /usr/local/bin/wget
-
-Now each hour your database will be updated with fresh data. Note that the same osmChange
+Now each minute your database will be updated with fresh data. Note that the same osmChange
 file **should not** be processed twice: the database has no means of skipping already
 processed files.
 
