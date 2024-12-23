@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const REPLICATION_SERVER = "https://planet.openstreetmap.org/replication"
@@ -44,7 +45,10 @@ func GetServerState() int64 {
 	}
 	req.Header.Set("User-Agent", "whodidit")
 
-	res, err := http.DefaultClient.Do(req)
+	client := http.Client{
+		Timeout: 42 * time.Second,
+	}
+	res, err := client.Do(req)
 	if err != nil {
 		panic(err)
 	}

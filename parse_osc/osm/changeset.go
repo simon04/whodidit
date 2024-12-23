@@ -77,7 +77,10 @@ func GetChangesetsForCsv(changesets string) ([]Changeset, error) {
 	}
 	req.Header.Set("User-Agent", "whodidit")
 
-	res, err := http.DefaultClient.Do(req)
+	client := http.Client{
+		Timeout: 42 * time.Second,
+	}
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
